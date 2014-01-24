@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Written by Albert Chen.
+     Last updated 11/21/2013
+
+     This layout is for the rover based device. It allows for enabling/disabling and zeroing the
+     accelerometer. -->
+    <!-- TODO: Add wall follower? -->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <!-- Section label for Rover Control -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:padding="@dimen/menu_item_padding"
+        android:textSize="@dimen/label_text_size"
+        android:textStyle="bold"
+        android:textAllCaps="true"
+        android:text="@string/rover_control_options_label"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <!-- Button for calibrating (zeroing accelerometer to current position) -->
+        <Button
+            android:id="@+id/button_calibrate_accelerometer"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:paddingLeft="@dimen/rover_options_button_margin"
+            android:paddingRight="@dimen/rover_options_button_margin"
+            android:text="@string/button_calibrate_accelerometer"/>
+
+        <!-- TODO: Add wall follower? -->
+
+    </LinearLayout>
+
+</LinearLayout>

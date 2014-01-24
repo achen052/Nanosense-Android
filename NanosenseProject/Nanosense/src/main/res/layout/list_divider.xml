@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Written by Albert Chen.
+     Last updated 11/21/2013
+
+     List divider used in between each section of the options. -->
+
+<View
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="1dp"
+    android:layout_marginTop="@dimen/divider_vertical_margin"
+    android:layout_marginBottom="@dimen/divider_vertical_margin"
+    android:background="@color/list_divider_color"/>

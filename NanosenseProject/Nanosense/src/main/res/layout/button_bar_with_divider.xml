@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Written by Albert Chen.
+     Last updated 11/26/2013
+
+     Button with divider bar above. -->
+
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_height="match_parent"
+    android:layout_width="match_parent"
+    android:orientation="vertical"
+    android:focusable="true">
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/button_divider_color"/>
+
+    <Button
+        android:id="@+id/button_done"
+        android:layout_height="wrap_content"
+        android:layout_width="match_parent"
+        android:layout_gravity="bottom"
+        android:text="@string/button_options_done"
+        style="?android:attr/buttonBarButtonStyle"/>
+
+</LinearLayout>

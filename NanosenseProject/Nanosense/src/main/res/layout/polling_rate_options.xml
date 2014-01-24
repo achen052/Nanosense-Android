@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Written by Albert Chen.
+     Last updated 11/21/2013
+
+     This layout is used for the polling rate options. It contains an editable text which should be
+     parsed for the polling rate in mx -->
+
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <!-- Polling rate label -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:paddingTop="@dimen/menu_item_padding"
+        android:paddingBottom="@dimen/menu_item_padding"
+        android:textSize="@dimen/label_text_size"
+        android:textStyle="bold"
+        android:textAllCaps="true"
+        android:text="@string/polling_rate_label"/>
+
+    <!-- EditText for entering polling rate -->
+    <EditText
+        android:id="@+id/edit_text_polling_rate"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:inputType="number"
+        android:hint="@string/polling_rate_hint"/>
+
+</LinearLayout>

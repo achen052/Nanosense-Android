@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Written by Albert Chen.
+     Last updated 11/26/2013
+
+     This layout is used by OptionsFragment for displaying the options. Each section of the options
+     is defined in its own layout and are added here. This layout also adds the dividers between
+     each section. -->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:measureAllChildren="true"
+        android:fillViewport="true">
+
+        <!-- LinearLayout to contain and add padding to all option sections -->
+        <!-- TODO: Standard device is not visible in portrait mode ( when not scrollable? )... -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:padding="16dp"
+            android:orientation="vertical">
+
+            <!-- Selection for device type. -->
+            <include layout="@layout/device_selection_options"/>
+            <!-- List divider. -->
+            <include layout="@layout/list_divider"/>
+
+            <!-- Pump selection options, normally hidden unless pump is chosen in the device selection. -->
+            <include layout="@layout/pump_selection_options"
+                    android:id="@+id/pump_selection_options"
+                    android:visibility="gone"/>
+
+            <!-- Rover selection options, normally hidden unless rover is chosen in the device selection. -->
+            <include layout="@layout/rover_selection_options"
+                     android:id="@+id/rover_selection_options"
+                     android:visibility="gone"/>
+
+            <!-- List divider to be added if pump/rover is selected. -->
+            <include layout="@layout/list_divider"
+                     android:id="@+id/extra_options_list_divider"
+                     android:visibility="gone"/>
+
+            <!-- Polling Rate options. -->
+            <include layout="@layout/polling_rate_options"/>
+
+            <!-- List divider. -->
+            <include layout="@layout/list_divider"/>
+
+            <!-- Server selection options. -->
+            <include layout="@layout/server_selection_options"/>
+
+        </LinearLayout>
+
+    </ScrollView>
+
+    <!-- LinearLayout to keep done button visible at bottom at all times -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- Done button. -->
+        <include layout="@layout/button_bar_with_divider"
+            android:layout_gravity="bottom"
+            android:gravity="bottom"/>
+    </LinearLayout>
+
+</LinearLayout>
+

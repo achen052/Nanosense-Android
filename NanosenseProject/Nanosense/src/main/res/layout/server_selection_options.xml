@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Written by Albert Chen.
+     Last updated 11/21/2013
+
+     This layout is used for the server connection options. It contains an editable text box to get the
+     server ip and port from the user. -->
+
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <!-- Server IP label -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:padding="@dimen/menu_item_padding"
+        android:textSize="@dimen/label_text_size"
+        android:textStyle="bold"
+        android:textAllCaps="true"
+        android:text="@string/server_ip_label"/>
+
+    <!-- EditText for entering server IP -->
+    <EditText
+        android:id="@+id/edit_text_server_ip"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:inputType="phone"
+        android:hint="@string/server_ip_hint"/>
+
+    <!-- Server Port label -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:paddingTop="@dimen/menu_item_padding"
+        android:paddingBottom="@dimen/menu_item_padding"
+        android:textSize="@dimen/label_text_size"
+        android:textStyle="bold"
+        android:textAllCaps="true"
+        android:text="@string/server_port_label"/>
+
+    <!-- EditText for entering server port -->
+    <EditText
+        android:id="@+id/edit_text_server_port"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:inputType="number"
+        android:hint="@string/server_port_hint"/>
+</LinearLayout>

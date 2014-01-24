@@ -1,0 +1,97 @@
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/container"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context="com.example.rheostattest.MainActivity"
+    tools:ignore="MergeRootFrame">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.33"
+            android:gravity="center"
+            android:textSize="18sp"
+            android:text="MUX: "/>
+
+        <EditText
+            android:id="@+id/muxSelect"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:inputType="numberSigned"
+            android:maxLength="2"
+            android:layout_weight="0.33"/>
+
+         <Button
+            android:id="@+id/setMuxButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.33"
+            android:text="Set MUX"/>
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.33"
+            android:gravity="center"
+            android:textSize="18sp"
+            android:text="Rheostat: "/>
+
+        <EditText
+            android:id="@+id/rheostatSelect"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:inputType="numberSigned"
+            android:maxLength="3"
+            android:layout_weight="0.33"/>
+
+        <Button
+            android:id="@+id/setRheostatButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.33"
+            android:text="Set Rheostat"/>
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/readResistance"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="18sp"
+        android:text="RDAC Resistance: "/>
+
+    <TextView
+        android:id="@+id/readAdc0"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="18sp"
+        android:text="ADC0: "/>
+
+    <TextView
+        android:id="@+id/readAdc1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="18sp"
+        android:text="ADC1: "/>
+
+    <TextView
+        android:id="@+id/readAdc2"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="18sp"
+        android:text="ADC2: "/>
+
+</LinearLayout>

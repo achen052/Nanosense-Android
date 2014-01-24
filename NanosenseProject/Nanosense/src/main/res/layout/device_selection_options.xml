@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Written by Albert Chen.
+     Last updated 11/21/2013
+
+     This layout is used for the device selection. It contains three radio buttons for selecting
+     between the standard, pump and rover configurations. -->
+
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:padding="@dimen/menu_item_padding"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textAllCaps="true"
+        android:text="@string/device_selection_label"/>
+
+    <RadioGroup
+        android:id="@+id/device_selection_radio_group"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center">
+
+        <RadioButton
+            android:id="@+id/standard_radio_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="@dimen/menu_item_padding"
+            android:layout_marginRight="@dimen/menu_item_padding"
+            android:checked="true"
+            android:text="@string/device_ioio_standard"/>
+
+        <RadioButton
+            android:id="@+id/pump_radio_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="@dimen/menu_item_padding"
+            android:layout_marginRight="@dimen/menu_item_padding"
+            android:text="@string/device_ioio_pump"/>
+
+        <RadioButton
+            android:id="@+id/rover_radio_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="@dimen/menu_item_padding"
+            android:layout_marginRight="@dimen/menu_item_padding"
+            android:text="@string/device_ioio_rover"/>
+    </RadioGroup>
+</LinearLayout>

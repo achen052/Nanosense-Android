@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">Nano Sense</string>
+    <string name="action_settings">Settings</string>
+    <string name="title_activity_nano_sense">NanoSenseActivity</string>
+    <string name="hello_world">Hello world!</string>
+
+    <!-- Begin Options Activity -->
+    <string name="title_activity_options">OptionsActivity</string>
+    <!-- Labels for device selection radio buttons. -->
+    <string name="device_ioio_standard">Standard</string>
+    <string name="device_ioio_pump">Pump</string>
+    <string name="device_ioio_rover">Rover</string>
+    <!-- Label for device selection section. -->
+    <string name="device_selection_label">Select Device Type:</string>
+    <!-- Label for polling rate section. -->
+    <string name="polling_rate_label">Polling Rate (ms):</string>
+    <!-- Hint for polling rate EditText. -->
+    <string name="polling_rate_hint">e.g. 100</string>
+    <!-- Hints for server selection EditTexts. -->
+    <string name="server_port_hint">e.g. 8080</string>
+    <string name="server_ip_hint">e.g. 255.255.255.255</string>
+    <!-- Label for server selection sections. -->
+    <string name="server_ip_label">Server IP:</string>
+    <string name="server_port_label">Server Port:</string>
+    <!-- Label for pump baseline duration section. -->
+    <string name="baseline_duration_label">Baseline Duration (s):</string>
+    <!-- Hint for pump baseline duration EditText. -->
+    <string name="baseline_duration_hint">e.g. 600</string>
+    <!-- Label for rover device control -->
+    <string name="rover_control_options_label">Rover Control Options:</string>
+    <!-- Label for calibrating (zeroing) the accelerometer -->
+    <string name="button_calibrate_accelerometer">Calibrate Accelerometer</string>
+    <!-- Label for enabling/disabling accelerometer control button -->
+    <string name="button_enable_accelerometer">Enable Accelerometer</string>
+    <string name="button_disable_accelerometer">Disable Accelerometer</string>
+    <string name="button_options_done">Done</string>
+    <!-- Error messages for invalid options in settings -->
+    <string name="error_polling_rate">Error - Invalid Polling Rate\nDefaulting to\u0020</string>
+    <string name="error_server_ip">Error - Invalid server IP\nDefaulting to\u0020</string>
+    <string name="error_server_port">Error - Invalid server port\nDefaulting to\u0020</string>
+    <!-- String for toast messaged shown when back pressed in options activity -->
+    <string name="options_cancelled">Cancelled - Options not set</string>
+    <string name="action_start">Start</string>
+    <string name="action_hide_show_pins">Hide/Show Pins</string>
+    <string name="confirm_calibrate_accel">Accelerometer Calibrated</string>
+    <string name="error_baseline_duration">Error - Invalid baseline duration\nDefaulting to\u0020</string>
+    <string name="toggle_button_accelerometer_on">Accelerometer On</string>
+    <string name="toggle_button_accelerometer_off">Accelerometer Off</string>
+    <!-- End Options Activity -->
+
+</resources>

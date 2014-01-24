@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="Gradle: ioiolibandroid">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/Nanosense/ioiolibandroid.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

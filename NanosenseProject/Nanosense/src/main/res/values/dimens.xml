@@ -1,0 +1,23 @@
+<resources>
+    <!-- Default screen margins, per the Android Design guidelines. -->
+    <dimen name="activity_horizontal_margin">16dp</dimen>
+    <dimen name="activity_vertical_margin">16dp</dimen>
+
+    <!-- OptionsActivity begin -->
+
+    <!-- Padding between each menu item. -->
+    <dimen name="menu_item_padding">8dp</dimen>
+    <!-- Margins on side of EditText in the options screen. -->
+    <dimen name="edit_text_margin">24dp</dimen>
+    <!-- Text size for the section/item labels in the options screen. -->
+    <dimen name="label_text_size">18sp</dimen>
+    <!-- Spacing above and below each divider. -->
+    <dimen name="divider_vertical_margin">16dp</dimen>
+    <!-- Left and right side margins on the divider (how far from the edge they go). -->
+    <dimen name="divider_horizontal_margin">8dp</dimen>
+    <dimen name="rover_options_button_margin">16dp</dimen>
+    <dimen name="button_min_height">75dp</dimen>
+
+    <!-- OptionsActivity end -->
+
+</resources>

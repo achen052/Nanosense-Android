@@ -1,0 +1,21 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context=".NanoSenseActivity" >
+    
+    <item android:id="@+id/action_settings"
+        android:title="@string/action_settings"
+        android:orderInCategory="100"
+        app:showAsAction="never" />
+
+    <item android:id="@+id/action_start"
+        android:title="@string/action_start"
+        android:orderInCategory="101"
+        app:showAsAction="never"/>
+
+    <item android:id="@+id/action_select_pins"
+        android:title="@string/action_hide_show_pins"
+        android:orderInCategory="102"
+        app:showAsAction="never"/>
+
+</menu>
