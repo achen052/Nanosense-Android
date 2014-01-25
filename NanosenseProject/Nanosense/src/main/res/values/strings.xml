@@ -2,9 +2,17 @@
 <resources>
 
     <string name="app_name">Nano Sense</string>
-    <string name="action_settings">Settings</string>
     <string name="title_activity_nano_sense">NanoSenseActivity</string>
     <string name="hello_world">Hello world!</string>
+
+    <!-- Begin NanoSenseActivity -->
+
+    <!-- Menu Item Strings -->
+    <string name="action_settings">Settings</string>
+    <string name="action_start">Start</string>
+    <string name="action_stop">Stop</string>
+
+    <!-- End NanoSenseActivity -->
 
     <!-- Begin Options Activity -->
     <string name="title_activity_options">OptionsActivity</string>
@@ -42,7 +50,6 @@
     <string name="error_server_port">Error - Invalid server port\nDefaulting to\u0020</string>
     <!-- String for toast messaged shown when back pressed in options activity -->
     <string name="options_cancelled">Cancelled - Options not set</string>
-    <string name="action_start">Start</string>
     <string name="action_hide_show_pins">Hide/Show Pins</string>
     <string name="confirm_calibrate_accel">Accelerometer Calibrated</string>
     <string name="error_baseline_duration">Error - Invalid baseline duration\nDefaulting to\u0020</string>

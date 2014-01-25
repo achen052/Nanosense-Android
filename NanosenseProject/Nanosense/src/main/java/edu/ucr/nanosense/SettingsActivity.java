@@ -1,7 +1,6 @@
 package edu.ucr.nanosense;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Resources;
@@ -27,11 +26,11 @@ import android.widget.Toast;
  * Written by Albert Chen
  * Last Updated 12/09/2013
  *
- * OptionsActivity contains a OptionsFragment which handles the UI elements. OptionsActivity is used
+ * SettingsActivity contains a OptionsFragment which handles the UI elements. SettingsActivity is used
  * for handling the extras being passed between the main {@link NanoSenseActivity} and
- * OptionsActivity
+ * SettingsActivity
  */
-public class OptionsActivity extends ActionBarActivity {
+public class SettingsActivity extends ActionBarActivity {
 
     /** Extras for all devices. **/
     public static final String EXTRA_POLLING_RATE = "polling_rate";
@@ -48,11 +47,16 @@ public class OptionsActivity extends ActionBarActivity {
     public static final String EXTRA_ACCEL_Y = "accel_y";
     public static final String EXTRA_ACCEL_Z = "accel_z";
 
+    /** Extras for rover. **/
+    public static final String STATE_ACCEL_X = "accel_x";
+    public static final String STATE_ACCEL_Y = "accel_y";
+    public static final String STATE_ACCEL_Z = "accel_z";
+
     public static Intent createIntent(Context context,
                                       int pollingRate,
                                       String serverIp,
                                       int serverPort) {
-        Intent intent = new Intent(context, OptionsActivity.class);
+        Intent intent = new Intent(context, SettingsActivity.class);
         intent.putExtra(EXTRA_POLLING_RATE, pollingRate);
         intent.putExtra(EXTRA_SERVER_IP, serverIp);
         intent.putExtra(EXTRA_SERVER_PORT, serverPort);
@@ -62,7 +66,7 @@ public class OptionsActivity extends ActionBarActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_options);
+        setContentView(R.layout.activity_settings);
 
         if (savedInstanceState == null) {
             getSupportFragmentManager().beginTransaction()
@@ -70,7 +74,6 @@ public class OptionsActivity extends ActionBarActivity {
                     .commit();
         }
     }
-
 
     public void onBackPressed() {
         // TODO: AlertDialog to show whether or not to cancel
@@ -83,7 +86,7 @@ public class OptionsActivity extends ActionBarActivity {
     /**
      * OptionsFragment contains and handles the UI and parsing options selections.
      */
-    public class OptionsFragment extends Fragment implements
+    public static class OptionsFragment extends Fragment implements
             RadioGroup.OnCheckedChangeListener, View.OnClickListener, SensorEventListener {
 
         private static final String serverIpRegex = "^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$";
@@ -119,7 +122,6 @@ public class OptionsActivity extends ActionBarActivity {
 
         /** Buttons for rover options **/
         private Button mCalibrateAccelButton;
-        // TODO: Change to ToggleButton
 
         /** Button for finishing options. **/
         private Button mDoneButton;
@@ -132,10 +134,10 @@ public class OptionsActivity extends ActionBarActivity {
         @Override
         public View onCreateView(LayoutInflater inflater, ViewGroup container,
                                  Bundle savedInstanceState) {
-            View rootView = inflater.inflate(R.layout.fragment_options, container, false);
+            View rootView = inflater.inflate(R.layout.fragment_settings, container, false);
 
             /** Initialize Accelerometer **/
-            mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+            mSensorManager = (SensorManager) getActivity().getSystemService(SENSOR_SERVICE);
             mSensorManager.registerListener(this,
                         mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
                         SensorManager.SENSOR_DELAY_FASTEST);
@@ -171,7 +173,27 @@ public class OptionsActivity extends ActionBarActivity {
             mDoneButton = (Button) rootView.findViewById(R.id.button_done);
             mDoneButton.setOnClickListener(this);
 
+            /** Restore zeroed accel if we have it **/
+            if (savedInstanceState != null) {
+                mNeutralX = savedInstanceState.getFloat(STATE_ACCEL_X);
+                mNeutralY = savedInstanceState.getFloat(STATE_ACCEL_Y);
+                mNeutralZ = savedInstanceState.getFloat(STATE_ACCEL_Z);
+            }
+
             return rootView;
+        }
+
+        @Override
+        public void onSaveInstanceState(Bundle savedInstanceState) {
+            /**
+             * Zeroed accel is saved when orientation changes. Current accel does not need to be
+             * saved since it will be constantly updated anyways. Other options are saved in the
+             * EditText and parsed when the done button is clicked so they also do not need to be
+             * saved.
+             **/
+            savedInstanceState.putFloat(STATE_ACCEL_X, mNeutralX);
+            savedInstanceState.putFloat(STATE_ACCEL_Y, mNeutralY);
+            savedInstanceState.putFloat(STATE_ACCEL_Z, mNeutralZ);
         }
 
         /**
@@ -281,11 +303,18 @@ public class OptionsActivity extends ActionBarActivity {
                                 baselineDuration + "\n";
                     }
                 } else if (mRoverRadioButton.isChecked()) {
+                    /** Pass back the "zeroed" location of the accelerometer and device type **/
                     intent.putExtra(EXTRA_DEVICE_TYPE, DEVICE_ROVER);
-                    /** Pass back the "zeroed" location of the accelerometer **/
-                    intent.putExtra(EXTRA_ACCEL_X, mNeutralX);
-                    intent.putExtra(EXTRA_ACCEL_Y, mNeutralY);
-                    intent.putExtra(EXTRA_ACCEL_Z, mNeutralZ);
+                    /** If the user didn't manually zero take the zero when they hit done **/
+                    if (mNeutralX == 0 && mNeutralY == 0 && mNeutralZ == 0) {
+                        intent.putExtra(EXTRA_ACCEL_X, mXAccel);
+                        intent.putExtra(EXTRA_ACCEL_Y, mYAccel);
+                        intent.putExtra(EXTRA_ACCEL_Z, mZAccel);
+                    } else {
+                        intent.putExtra(EXTRA_ACCEL_X, mNeutralX);
+                        intent.putExtra(EXTRA_ACCEL_Y, mNeutralY);
+                        intent.putExtra(EXTRA_ACCEL_Z, mNeutralZ);
+                    }
                 }
 
                 /** Show selected values/options **/
@@ -294,7 +323,6 @@ public class OptionsActivity extends ActionBarActivity {
                 getActivity().setResult(RESULT_OK, intent);
                 getActivity().finish();
             } else if (view.getId() == R.id.button_calibrate_accelerometer) {
-                // TODO: Need to save these values onSaveConfig
                 mNeutralX = mXAccel;
                 mNeutralY = mYAccel;
                 mNeutralZ = mZAccel;
@@ -318,6 +346,7 @@ public class OptionsActivity extends ActionBarActivity {
 
         @Override
         public void onAccuracyChanged(Sensor sensor, int accuracy) {
+            /** Do nothing **/
         }
     }
 }
