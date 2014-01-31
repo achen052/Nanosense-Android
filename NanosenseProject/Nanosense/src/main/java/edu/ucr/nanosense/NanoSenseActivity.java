@@ -9,9 +9,11 @@ import android.os.Handler;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.Toast;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.ref.Reference;
 
 import ioio.lib.api.AnalogInput;
 import ioio.lib.api.DigitalInput;
@@ -23,6 +25,9 @@ import ioio.lib.util.BaseIOIOLooper;
 import ioio.lib.util.IOIOLooper;
 import ioio.lib.util.android.IOIOActivity;
 
+/**
+ * NanoSenseActivity holds the variables and handles the control of the device.
+ */
 public class NanoSenseActivity extends IOIOActivity {
 
     private static final String TAG = "NanoSense";
@@ -33,15 +38,22 @@ public class NanoSenseActivity extends IOIOActivity {
     private int mServerPort;
     private String mServerIp;
 
+    private byte[] mInitialResistances = new byte[Constants.Device.NUM_PINS_NANOSENSOR];
+
+    private long mPolledTime;
+
     // TODO: These need to be saved in on instance state
     private boolean mStarted = false;
     private boolean mInitialized = false;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.fragment_graph_view);
 
+        /** TODO: These need to be saved and only done if there isn't anything saved**/
+        /** TODO: Polled time and initialized need to be saved as well **/
         mPollingRate = Constants.Options.DEFAULT_POLLING_RATE;
         mServerPort = Constants.Options.DEFAULT_SERVER_PORT;
         mServerIp = Constants.Options.DEFAULT_SERVER_IP;
@@ -60,8 +72,20 @@ public class NanoSenseActivity extends IOIOActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.nano_sense, menu);
-        // TODO: Add start/stop button
         return true;
+    }
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        MenuItem settingsItem = menu.findItem(R.id.action_settings);
+        if (settingsItem != null) {
+            settingsItem.setEnabled(!mStarted);
+        }
+        MenuItem startItem = menu.findItem(R.id.action_start);
+        if (startItem != null) {
+            startItem.setTitle(mStarted ? R.string.action_stop : R.string.action_start);
+        }
+        return super.onPrepareOptionsMenu(menu);
     }
 
     @Override
@@ -73,17 +97,17 @@ public class NanoSenseActivity extends IOIOActivity {
         if (id == R.id.action_settings) {
             Intent intent = new Intent(this, SettingsActivity.class);
             startActivityForResult(intent, REQUEST_OPTIONS);
-            return true;
         } else if (id == R.id.action_start) {
             mStarted = !mStarted;
-            item.setTitle(mStarted ? R.string.action_stop : R.string.action_start);
+            if (mStarted) {
+                mPolledTime = 0;
+            }
         }
         return super.onOptionsItemSelected(item);
     }
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent resultIntent) {
-        Log.d(TAG, "In NanoSenseActivity::onActivityResult(...) - Request Code: " + requestCode);
         if (requestCode == REQUEST_OPTIONS) {
             if (resultCode == RESULT_OK) {
                 if (resultIntent != null) {
@@ -115,47 +139,12 @@ public class NanoSenseActivity extends IOIOActivity {
         return new Looper();
     }
 
+    /**
+     * Looper should be strictly for communication with the device since the connection
+     * can be broken and the looper can be recreated at any time. All data values should
+     * be managed by the Activity.
+     */
     class Looper extends BaseIOIOLooper implements SensorEventListener {
-
-        private static final int PIN_LED = 0;
-
-        /** MUX pin numbers **/
-        private static final int PIN_MUX_SEL0 = 1;
-        private static final int PIN_MUX_SEL1 = 2;
-        private static final int PIN_MUX_SEL2 = 3;
-        private static final int PIN_MUX_SEL3 = 4;
-        /** Rover TX/RX pins **/
-        private static final int PIN_ROVER_RX = 5;
-        private static final int PIN_ROVER_TX = 6;
-        /** SPI pin numbers **/
-        private static final int PIN_SPI_MISO = 9;
-        private static final int PIN_SPI_SS = 10;
-        private static final int PIN_SPI_MOSI = 11;
-        private static final int PIN_SPI_CLK = 13;
-        /** AnalogInput pin numbers for nano sensor, humidity, temperature respectively **/
-        private static final int PIN_ADC0 = 31;
-        private static final int PIN_ADC1 = 32;
-        private static final int PIN_ADC2 = 33;
-        /** Thermistor on sensor chip wired to a 10kOhm resistor and 3.3V input/ref **/
-        private static final int PIN_ADC3 = 34;
-
-        /** Number of pins for each to initialize **/
-        private static final int NUM_PINS_MUX = 4;
-        private static final int NUM_PINS_ANALOG = 4;
-        /** 14 gas sensors **/
-        private static final int NUM_PINS_NANOSENSOR = 14;
-
-        private static final int MAX_BIT_VOLTAGE = 1024;
-        private static final int MAX_BIT_RESISTANCE = 255;
-
-        /** Reference voltage used for the analog read **/
-        private static final double VOLTAGE_REFERENCE = 3.3;
-
-        /** Max rheostat resistance in kOhms **/
-        private static final double MAX_RHEO_RESISTANCE = 100.0;
-
-        /** Polling status **/
-        private boolean mPolling = false;
 
         // TODO: Implement variable speed in options.
         private byte mSpeed = 0x20;
@@ -163,41 +152,19 @@ public class NanoSenseActivity extends IOIOActivity {
         /** LED on IOIO. Turns on when connected **/
         private DigitalOutput mLed;
         /** DigitalOutput pins for MUX select **/
-        private DigitalOutput[] mMuxPins = new DigitalOutput[NUM_PINS_MUX];
+        private DigitalOutput[] mMuxPins = new DigitalOutput[Constants.Device.NUM_PINS_MUX];
         /** SPI interface for communicating with the digital rheostat **/
-        private AnalogInput[] mAnalogPins = new AnalogInput[NUM_PINS_ANALOG];
+        private AnalogInput[] mAnalogPins = new AnalogInput[Constants.Device.NUM_PINS_ANALOG];
         private SpiMaster mSpi;
 
         private Uart mRoverUart;
         private InputStream mRoverRx;
         private OutputStream mRoverTx;
 
-        private double[] mInitialResistances = new double[NUM_PINS_NANOSENSOR];
-
         private byte rheostatVal = 0;
 
-        /** Handler and runnable for scheduling polling loops. Should do a check for {@link mStarted}
-         * before posting **/
-        private Handler mLoopHandler = new Handler();
-        private Runnable mLoopRunnable = new Runnable() {
-            @Override
-            public void run() {
-                /** Polling loop control code goes in here **/
-                // TODO: Implement polling loop
-                try {
-                    rheostatWrite(rheostatVal++);
-                    Log.d(TAG, "Rheostat Read: " + rheostatRead());
-                } catch (ConnectionLostException connectionLostException) {
-                    connectionLostException.printStackTrace();
-                } catch (InterruptedException interruptedException) {
-                    interruptedException.printStackTrace();
-                }
-                mLoopHandler.postDelayed(mLoopRunnable, mPollingRate);
-            }
-        };
-
         /**
-         * setup is called every time the device is connected or when the Activity is restarted.
+         * setup is called every time the device is connected or when the Looper is recreated.
          * It opens and initializes the proper digital pins, analog pins, and communication
          * protocols that the IOIO will use with the sensor device.
          *
@@ -207,12 +174,12 @@ public class NanoSenseActivity extends IOIOActivity {
         @Override
         protected void setup() throws ConnectionLostException, InterruptedException {
             /** Turn on LED when connected **/
-            mLed = ioio_.openDigitalOutput(PIN_LED, true);
+            mLed = ioio_.openDigitalOutput(Constants.Device.PIN_LED, true);
             mLed.write(false);
             /** Initialize input/output pins **/
+            initializeSpi();
             initializeMux();
             initializeAnalog();
-            initializeSpi();
             initializeUart();
             initializeRheostat();
         }
@@ -225,13 +192,18 @@ public class NanoSenseActivity extends IOIOActivity {
          * @throws InterruptedException
          */
         private void initializeRheostat() throws ConnectionLostException, InterruptedException {
-            // TODO: Move to Constants.Commands
-            runOnUiThread(new Runnable() {
+            /** This needs to be run on the UI Thread otherwise the connection is lost. Usually
+             * longer operations such as SPI or Uart transmissions have to be run on a separate
+             * thread. **/
+            // TODO: Try removing, or doing a separate thread from UI since that can potentially lock up.
+             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
+                    Log.d(TAG, "Initializing Rheostat...");
                     byte[] bytesToSend = {0x1C, 0x02};
                     try {
                         mSpi.writeRead(bytesToSend, bytesToSend.length, bytesToSend.length, null, 0);
+                        Log.d(TAG, "Rheostat Initialized");
                     } catch (ConnectionLostException e) {
                         e.printStackTrace();
                     } catch (InterruptedException e) {
@@ -242,13 +214,15 @@ public class NanoSenseActivity extends IOIOActivity {
         }
 
         /**
-         * Initializes the MUX pins to be DigitalOutput for controlling the MUX.
+         * Initializes the MUX pins to be DigitalOutput for controlling the MUX and sets the MUX to
+         * 0.
+         *
          * @throws ConnectionLostException
          */
         private void initializeMux() throws ConnectionLostException {
-            for (int i = PIN_MUX_SEL0; i <= PIN_MUX_SEL3; ++i) {
-                mMuxPins[i - PIN_MUX_SEL0] = ioio_.openDigitalOutput(i);
-                mMuxPins[i - PIN_MUX_SEL0].write(false);
+            for (int i = Constants.Device.PIN_MUX_SEL0; i <= Constants.Device.PIN_MUX_SEL3; ++i) {
+                mMuxPins[i - Constants.Device.PIN_MUX_SEL0] = ioio_.openDigitalOutput(i);
+                mMuxPins[i - Constants.Device.PIN_MUX_SEL0].write(false);
             }
         }
 
@@ -256,9 +230,9 @@ public class NanoSenseActivity extends IOIOActivity {
          * Initializes the Analog input pins for reading the sensors.
          * @throws ConnectionLostException
          */
-        private void initializeAnalog() throws ConnectionLostException{
-            for (int i = PIN_ADC0; i <= PIN_ADC3; ++i) {
-                mAnalogPins[i - PIN_ADC0] = ioio_.openAnalogInput(i);
+        private void initializeAnalog() throws ConnectionLostException {
+            for (int i = Constants.Device.PIN_ADC0; i <= Constants.Device.PIN_ADC3; ++i) {
+                mAnalogPins[i - Constants.Device.PIN_ADC0] = ioio_.openAnalogInput(i);
             }
         }
 
@@ -273,11 +247,13 @@ public class NanoSenseActivity extends IOIOActivity {
          * @throws ConnectionLostException
          */
         private void initializeSpi() throws ConnectionLostException {
+            // TODO: Try increasing the rate?
             mSpi = ioio_.openSpiMaster(
-                    new DigitalInput.Spec(PIN_SPI_MISO, DigitalInput.Spec.Mode.PULL_UP),
-                    new DigitalOutput.Spec(PIN_SPI_MOSI),
-                    new DigitalOutput.Spec(PIN_SPI_CLK),
-                    new DigitalOutput.Spec[] { new DigitalOutput.Spec(PIN_SPI_SS) },
+                    new DigitalInput.Spec(Constants.Device.PIN_SPI_MISO,
+                            DigitalInput.Spec.Mode.PULL_UP),
+                    new DigitalOutput.Spec(Constants.Device.PIN_SPI_MOSI),
+                    new DigitalOutput.Spec(Constants.Device.PIN_SPI_CLK),
+                    new DigitalOutput.Spec[] { new DigitalOutput.Spec(Constants.Device.PIN_SPI_SS)},
                     new SpiMaster.Config(SpiMaster.Rate.RATE_125K, false, true));
         }
 
@@ -288,7 +264,7 @@ public class NanoSenseActivity extends IOIOActivity {
          * @throws ConnectionLostException
          */
         private void setMux(byte pin) throws ConnectionLostException {
-            for (byte i = 0; i < NUM_PINS_MUX; ++i) {
+            for (byte i = 0; i < Constants.Device.NUM_PINS_MUX; ++i) {
                 byte bitMask = (byte) (1 << i);
                 mMuxPins[i].write((pin & bitMask) > 0);
             }
@@ -306,15 +282,14 @@ public class NanoSenseActivity extends IOIOActivity {
          *
          * @param bitResistance
          */
-        private void rheostatWrite(byte bitResistance) throws ConnectionLostException,
+        public void writeRheostat(byte bitResistance) throws ConnectionLostException,
                 InterruptedException {
             // TODO: Move to Constants.Commands
-            // TODO: Something is locking up the main thread after  the write read.... won't do rheostatRead();
-            byte command = 0x01;
-            byte upper = (byte) ((command << 2) | (bitResistance >> 6));
+            byte upper = (byte) (Constants.Commands.RHEOSTAT_WRITE | (bitResistance >> 6));
             byte lower = (byte) (bitResistance << 2);
             byte[] bytesToSend = {upper, lower};
             Log.d(TAG, "SPI Send: " + upper + ", " + lower);
+            Log.d(TAG, "Writing rheostat: " + bitResistance);
             mSpi.writeRead(bytesToSend, bytesToSend.length, bytesToSend.length, null, 0);
         }
 
@@ -323,19 +298,44 @@ public class NanoSenseActivity extends IOIOActivity {
          * that the potentiometer is indeed set to the correct resistance before taking the ADC
          * reading.
          *
+         * The RDAC register should be read before performing calculations to determine the sensor
+         * resistance. This fixes the issue with the delay between sending the SPI command to write
+         * and reading the ADC since the SPI read in {@link Looper#writeRheostat(byte)} is
+         * asynchronous. This results in reading the ADC before the SPI is actually set using
+         * different values for the calculation than what the bridge is actually set at.
+         *
          * @return Returns the bit resistance of the rheostat (0-255) corresponding to 0-100kOhms
          */
-        private byte rheostatRead() throws ConnectionLostException, InterruptedException {
-            // TODO: Move to Constants.Commands
-            byte[] upperArray = {(byte) 0x80};
-            byte[] lowerArray = {0x00};
+        private int readRheostat() throws ConnectionLostException, InterruptedException {
+            byte[] upperArray = {Constants.Commands.RHEOSTAT_READ_UPPER};
+            byte[] lowerArray = {Constants.Commands.RHEOSTAT_READ_LOWER};
             byte[] bytesReceived = new byte[1];
+            /** Read/write one byte at a time since we're getting back a 16-bit response **/
             mSpi.writeRead(upperArray, upperArray.length, upperArray.length, bytesReceived, 1);
             int upperInt = bytesReceived[0] & 0xFF;
             mSpi.writeRead(lowerArray, lowerArray.length, lowerArray.length, bytesReceived, 1);
             int lowerInt = bytesReceived[0] & 0xFF;
+            /**
+             * C = command bits; D = data bits
+             * Response from rheostat is 2 bytes. 00[C3:C0][D9:D0].
+             * Upper byte is 00[C3:C0] [D9:D6] so drop the command and shift [D9:D6] to the proper
+             * position .
+             * Lower byte is [D5:D0] but since it's an 8-bit Rheostat the lower 2 bits are garbage
+             * and dropped.
+             * See data sheet on AD5271 for more details.
+             **/
             int readVal = ((upperInt & 0x03) << 6 | (lowerInt >> 2));
-            return (byte) readVal;
+            return readVal;
+        }
+
+        /**
+         * writeReadRheostat is a blocking function. It writes the value to the rheostat and then
+         * reads it back to verify that it has been set before returning.
+         */
+        private void writeReadRheostat(byte bitResistance) throws ConnectionLostException,
+                InterruptedException{
+            writeRheostat(bitResistance);
+            while(readRheostat() != bitResistance);
         }
 
         /**
@@ -345,28 +345,37 @@ public class NanoSenseActivity extends IOIOActivity {
          * a value between 0 and 1, it multiplies by 1024 since it's a 10-bit ADC and tries to match it
          * to 512.
          *
+         * The matching is done using a recursive binary search algorithm.
+         *
          * For the AD5271BRMZ-100-ND rheostat, the range is from 0-100kOhms with 255 taps
          *
          * @param pin Pin to read voltage from/match.
          * @param low Low value of the resistance.
          * @param high High bit value of the resistance.
+         *
+         * @return byte The bit value of the divider
          */
-        private double matchResistance(int pin, int low, int high) throws ConnectionLostException,
+        private byte matchResistance(int low, int high) throws ConnectionLostException,
                 InterruptedException {
-            setMux((byte) pin);
             int mid = (low + high) / 2;
             if (low > high) {
-                return (double) mid / MAX_BIT_RESISTANCE * MAX_RHEO_RESISTANCE;
+                return (byte) mid;
             }
 
-            rheostatWrite((byte) mid);
-            int bitVoltage = (int) (mAnalogPins[PIN_ADC0].read() * MAX_BIT_VOLTAGE);
+            /** Write the new value **/
+            writeReadRheostat((byte) mid);
+            /** IMPORTANT: Read the bitVoltage rather than the actual voltage. This assumes that the
+             * reference voltage is the same as the bridge input voltage. The bridge voltage should
+             * be the same though since otherwise there is risk of frying the pin in the event that
+             * the nano sensors connection is broken. **/
+            int bitVoltage = (int) (mAnalogPins[Constants.Device.PIN_ADC0].read() *
+                    Constants.Device.MAX_BIT_VOLTAGE);
             if (bitVoltage > 512) {
-                return matchResistance(pin, low, mid - 1);
+                return matchResistance(low, mid - 1);
             } else if (bitVoltage > 512) {
-                return matchResistance(pin, mid + 1, high);
+                return matchResistance(mid + 1, high);
             } else {
-                return (double) mid / MAX_BIT_RESISTANCE * MAX_RHEO_RESISTANCE;
+                return (byte) mid;
             }
         }
 
@@ -375,14 +384,19 @@ public class NanoSenseActivity extends IOIOActivity {
          * Resistances are then stored in {@link mInitialResistances}
          */
         private void matchResistances() throws ConnectionLostException, InterruptedException {
-            for (int i = 0; i < NUM_PINS_NANOSENSOR; ++i) {
+            // TODO: Add dialog showing that they are being initialized and which pin it's on.
+            for (int i = 0; i < Constants.Device.NUM_PINS_NANOSENSOR; ++i) {
                 setMux((byte) i);
-                mInitialResistances[i] = matchResistance(i, 0, MAX_BIT_RESISTANCE);
+                mInitialResistances[i] = matchResistance(0, Constants.Device.MAX_BIT_RESISTANCE);
             }
         }
 
         private void initializeUart() throws ConnectionLostException, InterruptedException {
-            mRoverUart = ioio_.openUart(PIN_ROVER_RX, PIN_ROVER_TX, 115200, Uart.Parity.NONE, Uart.StopBits.ONE);
+            mRoverUart = ioio_.openUart(Constants.Device.PIN_ROVER_RX,
+                    Constants.Device.PIN_ROVER_TX,
+                    Constants.Device.UART_RATE,
+                    Uart.Parity.NONE,
+                    Uart.StopBits.ONE);
             mRoverRx = mRoverUart.getInputStream();
             mRoverTx = mRoverUart.getOutputStream();
         }
@@ -465,34 +479,114 @@ public class NanoSenseActivity extends IOIOActivity {
             }
         }
 
+        /**
+         * Helper function for converting read voltage to sensor resistance. The voltage bridge has
+         * the rheostat as R1 and the sensor as R2.
+         *
+         * @param readVoltage The read voltage in volts.
+         * @param bitResistance The resistance of the nano sensor in kOhms.
+         */
+        private double voltageToResistance(double readVoltage, byte bitResistance) {
+            /**
+             * Divider resistance in kOhms.
+             */
+            double dividerResistance = (double) bitResistance / Constants.Device.MAX_BIT_RESISTANCE
+                    * Constants.Device.MAX_RHEO_RESISTANCE;
+            double sensorResistance = readVoltage * dividerResistance /
+                    (Constants.Device.VOLTAGE_REFERENCE - readVoltage);
+            Log.d(TAG, "Sensor Resistance: " + sensorResistance);
+            return sensorResistance;
+        }
+
+        /**
+         * Reads the nano sensors and returns their value in kOhms.
+         *
+         * @return double[] The nano sensor's resistance in kOhms.
+         * @throws ConnectionLostException
+         */
+        private double[] readNanoSensors() throws ConnectionLostException, InterruptedException {
+            double[] sensorResistances = new double[Constants.Device.NUM_PINS_NANOSENSOR];
+            for (int i = 0; i < Constants.Device.NUM_PINS_NANOSENSOR; ++i) {
+                /**
+                 * Set the MUX, set the matching resistance, then read the voltage.
+                 */
+                setMux((byte) i);
+                writeReadRheostat(mInitialResistances[i]);
+                /**
+                 * ADC0 is connected to the nano sensor and MUX.
+                 */
+                double readVoltage = (double) mAnalogPins[Constants.Device.ADC_NANO_SENSOR]
+                        .getVoltage();
+                double sensorResistance = voltageToResistance(readVoltage, mInitialResistances[i]);
+                Log.d(TAG, "Sensor Resistance: " + sensorResistance);
+                sensorResistances[i] = sensorResistance;
+            }
+            return sensorResistances;
+        }
+
+        /**
+         * readTemperature reads the TMP36 temperature sensor's voltage and calculates the
+         * corresponding temperature in Celcius.
+         * @return The read temperature in Celcius.
+         * @throws ConnectionLostException
+         * @throws InterruptedException
+         */
+        private double readTemperature() throws ConnectionLostException, InterruptedException {
+            double readVoltage = (double) mAnalogPins[Constants.Device.ADC_TEMPERATURE]
+                    .getVoltage();
+            double tempCelcius = (readVoltage + Constants.Temperature.VOLTAGE_OFFSET)
+                    * Constants.Temperature.TEMPERATURE_SCALE +
+                    Constants.Temperature.TEMPERATURE_OFFSET;
+            Log.d(TAG, "Temperature (C): " + tempCelcius);
+            return tempCelcius;
+        }
+
+        /**
+         * Read humidity reads the HIH-4030 humidity sensor's voltage and calculates the
+         * corresponding relative humidity based on the voltage and the temperature.
+         * @param tempCelcius The temperature in Celcius.
+         * @return double The relative humidity percentage.
+         */
+
+        private double readHumidity(double tempCelcius) throws ConnectionLostException,
+                InterruptedException {
+            double readVoltage = (double) mAnalogPins[Constants.Device.ADC_HUMIDITY].getVoltage();
+            double humidityPercentage = (readVoltage / Constants.Device.VOLTAGE_REFERENCE -
+                    Constants.Humidity.VOLTAGE_OFFSET) / Constants.Humidity.VOLTAGE_SCALE;
+            double relativeHumidity = humidityPercentage / (Constants.Humidity.TEMPERATURE_OFFSET +
+                    Constants.Humidity.TEMPERATURE_SCALE * tempCelcius);
+            if (relativeHumidity > 100) {
+                relativeHumidity = 100;
+            } else if (relativeHumidity < 0) {
+                relativeHumidity = 0;
+            }
+            return relativeHumidity;
+        }
+
         @Override
         public void loop() throws ConnectionLostException, InterruptedException {
-
             if (mStarted) {
                 if (!mInitialized) {
-                    mLoopHandler.postDelayed(mLoopRunnable, mPollingRate);
+                    matchResistances();
                     mInitialized = true;
+                } else {
+                    long elapsedTime = System.currentTimeMillis() - mPolledTime;
+                    if (mInitialized && elapsedTime >= mPollingRate) {
+                        double[] sensorResistances = readNanoSensors();
+                        double tempCelcius = readTemperature();
+                        double relativeHumidity = readHumidity(tempCelcius);
+                        // TODO: Read thermistor
+                        // TODO: Store values
+                        // TODO: Add values to proper fragments maybe use a handler loop task in the main activity to do this.
+                        mPolledTime = System.currentTimeMillis();
+                    }
                 }
-            } else {
-                mInitialized = false;
-                mLoopHandler.removeCallbacks(mLoopRunnable);
             }
-            /**
-            if (mStarted) {
-                for (int i = 0; i < NUM_PINS_NANOSENSOR; ++i) {
-                    setMux((byte) i);
-                    double voltage = mAnalogPins[0].read() * VOLTAGE_REFERENCE;
-                    double resistance = voltage * 50 / (VOLTAGE_REFERENCE - voltage);
-                }
-                double temperature = (mAnalogPins[2].read() * VOLTAGE_REFERENCE - 0.75) * 100 + 25;
-                double humidity = (mAnalogPins[1].read() * VOLTAGE_REFERENCE - 0.16) / 0.0062;
-                double relativeHumidity = humidity / (1.0546 - 0.00216 * temperature);
-            }
-             **/
         }
 
         @Override
         public void onSensorChanged(SensorEvent event) {
+            // TODO: Init acceleromter control if rover is selected.
             /**
             if(event.sensor.getType() == Sensor.TYPE_ACCELEROMETER && mIsPolling)
             {
@@ -517,25 +611,5 @@ public class NanoSenseActivity extends IOIOActivity {
         }
     }
 
-    /**
-    public static class GraphViewFragment extends Fragment {
-
-        private TextView mPrintout;
-
-        public GraphViewFragment() {
-        }
-
-        @Override
-        public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                                 Bundle savedInstanceState) {
-            View rootView = inflater.inflate(R.layout.fragment_graph_view, container, false);
-
-            if (rootView != null) {
-                mPrintout = (TextView) rootView.findViewById(R.id.readings_output);
-            }
-            return rootView;
-        }
-    }
-        **/
 }
 
