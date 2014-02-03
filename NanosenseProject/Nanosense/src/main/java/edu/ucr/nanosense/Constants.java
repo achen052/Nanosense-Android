@@ -112,4 +112,11 @@ public class Constants {
         public static final double TEMPERATURE_OFFSET = 1.0546;
         public static final double TEMPERATURE_SCALE = -0.00216;
     }
+
+    public class Thermistor {
+        /** Voltage divider R2 in kOhms **/
+        public static final double DIVIDER_RESISTANCE = 10.0;
+        public static final double TEMPERATURE_OFFSET = -507.59;
+        public static final double TEMPERATURE_SCALE = 115.6;
+    }
 }

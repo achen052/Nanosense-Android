@@ -1,5 +1,8 @@
 package edu.ucr.nanosense;
 
+import android.app.AlertDialog;
+import android.app.Fragment;
+import android.app.ProgressDialog;
 import android.content.Intent;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -14,6 +17,7 @@ import android.widget.Toast;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.ref.Reference;
+import java.text.DecimalFormat;
 
 import ioio.lib.api.AnalogInput;
 import ioio.lib.api.DigitalInput;
@@ -32,6 +36,8 @@ public class NanoSenseActivity extends IOIOActivity {
 
     private static final String TAG = "NanoSense";
 
+    private static final String FRAGMENT_TAG_GRAPH_VALUE = "GraphValueFragment";
+
     private static final int REQUEST_OPTIONS = 1;
 
     private int mPollingRate;
@@ -42,10 +48,11 @@ public class NanoSenseActivity extends IOIOActivity {
 
     private long mPolledTime;
 
+    private static ProgressDialog mProgressDialog;
+
     // TODO: These need to be saved in on instance state
     private boolean mStarted = false;
     private boolean mInitialized = false;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,15 +65,48 @@ public class NanoSenseActivity extends IOIOActivity {
         mServerPort = Constants.Options.DEFAULT_SERVER_PORT;
         mServerIp = Constants.Options.DEFAULT_SERVER_IP;
 
-        /**
-        if (savedInstanceState == null) {
+        mProgressDialog = new ProgressDialog(this);
+        mProgressDialog.setTitle("Initializing...");
+        mProgressDialog.setMessage("Sensor 0");
+        mProgressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+        mProgressDialog.setCancelable(false);
+
+        Fragment graphValueFragment = getFragmentManager().findFragmentByTag(FRAGMENT_TAG_GRAPH_VALUE);
+        if (graphValueFragment == null) {
             getFragmentManager().beginTransaction()
-                    .add(R.id.container, new GraphViewFragment())
+                    .add(R.id.container, new GraphValueFragment(), FRAGMENT_TAG_GRAPH_VALUE)
                     .commit();
         }
-         **/
     }
 
+    public void showProgressDialog() {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                mProgressDialog.show();
+            }
+        });
+    }
+
+    public void setProgressDialog(int sensorNum) {
+        final int finalSensorNum = sensorNum;
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                mProgressDialog.setMessage("Sensor " + finalSensorNum);
+                mProgressDialog.setProgress(finalSensorNum * (100 / Constants.Device.NUM_PINS_NANOSENSOR));
+            }
+        });
+    }
+
+    public void dismissProgressDialog() {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                mProgressDialog.dismiss();
+            }
+        });
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -177,6 +217,7 @@ public class NanoSenseActivity extends IOIOActivity {
             mLed = ioio_.openDigitalOutput(Constants.Device.PIN_LED, true);
             mLed.write(false);
             /** Initialize input/output pins **/
+            // TODO: For some reason SPI won't initialize properly until unplugging and replugging. It's not properly reading back.
             initializeSpi();
             initializeMux();
             initializeAnalog();
@@ -368,7 +409,7 @@ public class NanoSenseActivity extends IOIOActivity {
              * reference voltage is the same as the bridge input voltage. The bridge voltage should
              * be the same though since otherwise there is risk of frying the pin in the event that
              * the nano sensors connection is broken. **/
-            int bitVoltage = (int) (mAnalogPins[Constants.Device.PIN_ADC0].read() *
+            int bitVoltage = (int) (mAnalogPins[Constants.Device.ADC_NANO_SENSOR].read() *
                     Constants.Device.MAX_BIT_VOLTAGE);
             if (bitVoltage > 512) {
                 return matchResistance(low, mid - 1);
@@ -385,10 +426,13 @@ public class NanoSenseActivity extends IOIOActivity {
          */
         private void matchResistances() throws ConnectionLostException, InterruptedException {
             // TODO: Add dialog showing that they are being initialized and which pin it's on.
+            showProgressDialog();
             for (int i = 0; i < Constants.Device.NUM_PINS_NANOSENSOR; ++i) {
+                setProgressDialog(i);
                 setMux((byte) i);
                 mInitialResistances[i] = matchResistance(0, Constants.Device.MAX_BIT_RESISTANCE);
             }
+            dismissProgressDialog();
         }
 
         private void initializeUart() throws ConnectionLostException, InterruptedException {
@@ -563,6 +607,19 @@ public class NanoSenseActivity extends IOIOActivity {
             return relativeHumidity;
         }
 
+        private double readThermistor() throws ConnectionLostException, InterruptedException {
+            double readVoltage = (double) mAnalogPins[Constants.Device.ADC_THERMISTOR].getVoltage();
+            /** Calculate resistance of thermistor. Simple voltage bridge with R1 as thermistor and
+             * R2 as 10kOhms
+             */
+            double thermistorResistance = Constants.Thermistor.DIVIDER_RESISTANCE *
+                    Constants.Device.VOLTAGE_REFERENCE / readVoltage -
+                    Constants.Thermistor.DIVIDER_RESISTANCE;
+            double tempCelcius = Constants.Thermistor.TEMPERATURE_SCALE * thermistorResistance +
+                    Constants.Thermistor.TEMPERATURE_OFFSET;
+            return tempCelcius;
+        }
+
         @Override
         public void loop() throws ConnectionLostException, InterruptedException {
             if (mStarted) {
@@ -575,9 +632,38 @@ public class NanoSenseActivity extends IOIOActivity {
                         double[] sensorResistances = readNanoSensors();
                         double tempCelcius = readTemperature();
                         double relativeHumidity = readHumidity(tempCelcius);
-                        // TODO: Read thermistor
-                        // TODO: Store values
-                        // TODO: Add values to proper fragments maybe use a handler loop task in the main activity to do this.
+                        double thermistorCelcius = readThermistor();
+                        StringBuilder sb = new StringBuilder();
+                        DecimalFormat df = new DecimalFormat("#.##");
+                        final String tempCelciusString = df.format(tempCelcius);
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                GraphValueFragment graphValueFragment = (GraphValueFragment)
+                                        getFragmentManager().findFragmentByTag(FRAGMENT_TAG_GRAPH_VALUE);
+                                if (graphValueFragment != null) {
+                                    graphValueFragment.setDataLabel("Temp C:" );
+                                    graphValueFragment.setDataValue(tempCelciusString);
+                                }
+                            }
+                        });
+                        for (double sensorResistance : sensorResistances) {
+                            sb.append(df.format(sensorResistance));
+                            sb.append(",");
+                        }
+                        sb.append("\n\nTemp:");
+                        sb.append(df.format(tempCelcius));
+                        sb.append(",");
+                        sb.append(df.format(thermistorCelcius));
+                        sb.append("\n\nRH:");
+                        sb.append(df.format(relativeHumidity));
+                        final String dataString = sb.toString();
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                Toast.makeText(getApplicationContext(), dataString, Toast.LENGTH_LONG).show();
+                            }
+                        });
                         mPolledTime = System.currentTimeMillis();
                     }
                 }
