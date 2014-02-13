@@ -16,6 +16,11 @@ public class GraphViewFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        return null;
+        View rootView = inflater.inflate(R.layout.fragment_graph_view, null);
+        return rootView;
+    }
+
+    private static GraphViewFragment newInstance() {
+        return new GraphViewFragment();
     }
 }

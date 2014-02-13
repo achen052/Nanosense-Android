@@ -1,6 +1,5 @@
 package edu.ucr.nanosense;
 
-import android.app.AlertDialog;
 import android.app.Fragment;
 import android.app.ProgressDialog;
 import android.content.Intent;
@@ -8,7 +7,6 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.os.Bundle;
-import android.os.Handler;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -16,7 +14,6 @@ import android.widget.Toast;
 
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.lang.ref.Reference;
 import java.text.DecimalFormat;
 
 import ioio.lib.api.AnalogInput;
@@ -37,6 +34,7 @@ public class NanoSenseActivity extends IOIOActivity {
     private static final String TAG = "NanoSense";
 
     private static final String FRAGMENT_TAG_GRAPH_VALUE = "GraphValueFragment";
+    private static final String FRAGMENT_TAG_GRAPH_VIEW = "GraphFragment";
 
     private static final int REQUEST_OPTIONS = 1;
 
@@ -57,7 +55,7 @@ public class NanoSenseActivity extends IOIOActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.fragment_graph_view);
+        setContentView(R.layout.activity_nano_sense);
 
         /** TODO: These need to be saved and only done if there isn't anything saved**/
         /** TODO: Polled time and initialized need to be saved as well **/
@@ -71,12 +69,20 @@ public class NanoSenseActivity extends IOIOActivity {
         mProgressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
         mProgressDialog.setCancelable(false);
 
+        Fragment graphFragment = getFragmentManager().findFragmentByTag(FRAGMENT_TAG_GRAPH_VIEW);
+        if (graphFragment != null) {
+            getFragmentManager().beginTransaction().add(graphFragment, FRAGMENT_TAG_GRAPH_VIEW).commit();
+        } else {
+            Fragment graphFragment = GraphViewFragment.newInstance();
+        }
+        /**
         Fragment graphValueFragment = getFragmentManager().findFragmentByTag(FRAGMENT_TAG_GRAPH_VALUE);
         if (graphValueFragment == null) {
             getFragmentManager().beginTransaction()
                     .add(R.id.container, new GraphValueFragment(), FRAGMENT_TAG_GRAPH_VALUE)
                     .commit();
         }
+         **/
     }
 
     public void showProgressDialog() {

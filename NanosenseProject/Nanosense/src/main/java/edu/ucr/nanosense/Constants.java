@@ -47,7 +47,6 @@ public class Constants {
         /** ADC Pin for Nano Sensor */
         public static final int PIN_ADC0 = 31;
         /** ADC Pin for Humidity */
-        // TODO: SWAP ORDER BETWEEN HUMIDITY AND TEMPERATURE IN HARDWARE IF POSSIBLE. not a big issue though. just makes the code a bit confusing.
         public static final int PIN_ADC1 = 32;
          /** ADC Pin for Temperature */
         public static final int PIN_ADC2 = 33;
@@ -83,6 +82,9 @@ public class Constants {
 
         /** Uart baud rate **/
         public static final int UART_RATE = 115200;
+
+        /** Number of sensors (14 nanosensors, 1 thermistor, 1 temp, 1 humidity **/
+        public static final int NUM_SENSORS = 17;
     }
 
     public class Temperature {
@@ -92,18 +94,17 @@ public class Constants {
     }
 
     /**
-     * Constants used by both {@link GraphView} and {@link GraphDeltaView} to determine what to draw.
+     * Constants used by both {@link edu.ucr.nanosense.GraphView} and
+     * {@link GraphDeltaView} to determine what to draw.
      */
-    public class GraphView {
+    public class Graph {
         public static final int VIEW_NANOSENSOR = 0;
         public static final int VIEW_HUMIDITY = 1;
         public static final int VIEW_TEMPERATURE = 2;
 
-        /** Number of sensors (16 nanosensors, 1 temp, 1 humidity **/
-        public static final int NUM_SENSORS = 18;
 
         /** Max resistance in kOhms **/
-        public static final int MAX_RESISTANCE = 200;
+        public static final int MAX_RESISTANCE = 100;
     }
 
     public class Humidity {
