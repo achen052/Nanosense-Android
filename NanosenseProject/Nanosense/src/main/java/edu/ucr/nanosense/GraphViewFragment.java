@@ -21,7 +21,8 @@ import android.widget.TextView;
  * Typically GraphViewFragment will receive one data point per channel and
  *
  */
-public class GraphViewFragment extends Fragment implements ViewTreeObserver.OnGlobalLayoutListener, View.OnClickListener {
+public class GraphViewFragment extends Fragment implements ViewTreeObserver.OnGlobalLayoutListener,
+        View.OnClickListener {
 
     private GraphView mGraphView;
 
@@ -81,6 +82,8 @@ public class GraphViewFragment extends Fragment implements ViewTreeObserver.OnGl
     }
 
     @Override
-    public void onClick(View v) {
+    public void onClick(View view) {
+        // TODO; Update Labels.
+        // TODO: Switch to gesture listener? Maybe implement directly in GraphView and add callback interface to onChanged?
     }
 }

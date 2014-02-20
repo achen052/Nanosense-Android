@@ -88,6 +88,7 @@ public class Constants {
     }
 
     public class Temperature {
+        public static final int SENSOR_INDEX = 16;
         public static final double VOLTAGE_OFFSET = -0.75;
         public static final double TEMPERATURE_OFFSET = 25;
         public static final double TEMPERATURE_SCALE = 100;
@@ -108,6 +109,7 @@ public class Constants {
     }
 
     public class Humidity {
+        public static final int SENSOR_INDEX = 15;
         public static final double VOLTAGE_OFFSET = 0.16;
         public static final double VOLTAGE_SCALE = 0.0062;
         public static final double TEMPERATURE_OFFSET = 1.0546;
@@ -115,6 +117,7 @@ public class Constants {
     }
 
     public class Thermistor {
+        public static final int SENSOR_INDEX = 14;
         /** Voltage divider R2 in kOhms **/
         public static final double DIVIDER_RESISTANCE = 10.0;
         public static final double TEMPERATURE_OFFSET = -507.59;

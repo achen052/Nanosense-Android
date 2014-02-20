@@ -27,8 +27,9 @@ import java.util.ArrayList;
  */
 public class GraphView extends SurfaceView implements SurfaceHolder.Callback {
 
-
     private int mViewMode = Constants.Graph.VIEW_NANOSENSOR;
+
+    private long mDrawStart = System.nanoTime();
 
 
     /** Current window maximum value to display in kOhms */
@@ -48,7 +49,7 @@ public class GraphView extends SurfaceView implements SurfaceHolder.Callback {
         setFocusable(true);
         /** Initialize an array for each sensor **/
         for (int i = 0; i < Constants.Device.NUM_SENSORS; ++i) {
-            mValues.add(new ArrayList<Double>());
+            NanoSenseActivity.mData.add(new ArrayList<Data>());
         }
     }
 
@@ -60,7 +61,7 @@ public class GraphView extends SurfaceView implements SurfaceHolder.Callback {
         setFocusable(true);
         /** Initialize an array for each sensor **/
         for (int i = 0; i < Constants.Device.NUM_SENSORS; ++i) {
-            mValues.add(new ArrayList<Double>());
+            NanoSenseActivity.mData.add(new ArrayList<Data>());
         }
     }
 
@@ -72,7 +73,7 @@ public class GraphView extends SurfaceView implements SurfaceHolder.Callback {
         setFocusable(true);
         /** Initialize an array for each sensor **/
         for (int i = 0; i < Constants.Device.NUM_SENSORS; ++i) {
-            mValues.add(new ArrayList<Double>());
+            NanoSenseActivity.mData.add(new ArrayList<Data>());
         }
     }
 
@@ -113,8 +114,41 @@ public class GraphView extends SurfaceView implements SurfaceHolder.Callback {
 
     @Override
     protected void onDraw(Canvas canvas) {
+        mDrawStart = System.nanoTime();
         canvas.drawColor(Color.WHITE);
         drawAxis(canvas);
+        drawDebug(canvas);
+    }
+
+    private void drawDebug(Canvas canvas) {
+        int lastIndex = -1;
+        Paint textPaint = new Paint(Color.BLACK);
+        textPaint.setTextSize(32);
+        for (int i = 0; i < NanoSenseActivity.mData.size(); ++i) {
+            lastIndex = NanoSenseActivity.mData.get(i).size() - 1;
+            if (lastIndex >= 0) {
+                String debugString = "Sensor " + i + " - [";
+                switch (i) {
+                    case Constants.Thermistor.SENSOR_INDEX:
+                        debugString = "Thermistor (C) - [";
+                        break;
+                    case Constants.Humidity.SENSOR_INDEX:
+                        debugString = "RH (%) - [";
+                        break;
+                    case Constants.Temperature.SENSOR_INDEX:
+                        debugString = "Temperature (C) - [";
+                        break;
+                    default:
+                        break;
+                }
+                debugString += String.valueOf(lastIndex) + "]: ";
+                debugString += NanoSenseActivity.mData.get(i).get(lastIndex).toString();
+                canvas.drawText(debugString, 50, 50 * (i + 1), textPaint);
+            }
+        }
+        int fps = (int) (1000000000 / (System.nanoTime() - mDrawStart));
+        String debugString = "FPS: " + fps;
+        canvas.drawText(debugString, 50, 1000, textPaint);
     }
 
     private void drawAxis(Canvas canvas) {
@@ -155,16 +189,6 @@ public class GraphView extends SurfaceView implements SurfaceHolder.Callback {
             } catch (InterruptedException interruptedException) {
                 interruptedException.printStackTrace();
             }
-        }
-    }
-
-    /**
-     * Adds and stores the new data points.
-     * @param values
-     */
-    public void addData(ArrayList<Double> values) {
-        for (int i = 0; i < mValues.size(); ++i) {
-            mValues.get(i).add(values.get(i));
         }
     }
 

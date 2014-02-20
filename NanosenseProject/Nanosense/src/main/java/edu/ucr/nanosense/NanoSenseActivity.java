@@ -15,6 +15,7 @@ import android.widget.Toast;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 
 import ioio.lib.api.AnalogInput;
 import ioio.lib.api.DigitalInput;
@@ -38,15 +39,21 @@ public class NanoSenseActivity extends IOIOActivity {
 
     private static final int REQUEST_OPTIONS = 1;
 
+    public static ArrayList<ArrayList<Data>> mData = new ArrayList<ArrayList<Data>>();
+
     private int mPollingRate;
     private int mServerPort;
     private String mServerIp;
 
     private byte[] mInitialResistances = new byte[Constants.Device.NUM_PINS_NANOSENSOR];
 
+    /** The System time that the last sensor reading was taken */
     private long mPolledTime;
 
-    private static ProgressDialog mProgressDialog;
+    /** The total duration that the polling has been run for */
+    private long mRunDuration;
+
+    private ProgressDialog mProgressDialog;
 
     // TODO: These need to be saved in on instance state
     private boolean mStarted = false;
@@ -293,7 +300,7 @@ public class NanoSenseActivity extends IOIOActivity {
                     new DigitalOutput.Spec(Constants.Device.PIN_SPI_MOSI),
                     new DigitalOutput.Spec(Constants.Device.PIN_SPI_CLK),
                     new DigitalOutput.Spec[] { new DigitalOutput.Spec(Constants.Device.PIN_SPI_SS)},
-                    new SpiMaster.Config(SpiMaster.Rate.RATE_125K, false, true));
+                    new SpiMaster.Config(SpiMaster.Rate.RATE_2_6M, false, true));
         }
 
         /**
@@ -627,10 +634,22 @@ public class NanoSenseActivity extends IOIOActivity {
                 } else {
                     long elapsedTime = System.currentTimeMillis() - mPolledTime;
                     if (mInitialized && elapsedTime >= mPollingRate) {
+                        if (mPolledTime != 0) {
+                            mRunDuration += elapsedTime;
+                        }
+                        mPolledTime = System.currentTimeMillis();
                         double[] sensorResistances = readNanoSensors();
                         double tempCelcius = readTemperature();
                         double relativeHumidity = readHumidity(tempCelcius);
                         double thermistorCelcius = readThermistor();
+                        int i = 0;
+                        /** Save data */
+                        for ( ; i < sensorResistances.length; ++i) {
+                            mData.get(i).add(new Data(mRunDuration, sensorResistances[i]));
+                        }
+                        mData.get(i++).add(new Data(mRunDuration, thermistorCelcius));
+                        mData.get(i++).add(new Data(mRunDuration, relativeHumidity));
+                        mData.get(i).add(new Data(mRunDuration, tempCelcius));
                         StringBuilder sb = new StringBuilder();
                         DecimalFormat df = new DecimalFormat("#.##");
                         final String tempCelciusString = df.format(tempCelcius);
@@ -656,13 +675,13 @@ public class NanoSenseActivity extends IOIOActivity {
                         sb.append("\n\nRH:");
                         sb.append(df.format(relativeHumidity));
                         final String dataString = sb.toString();
+                        final long finalElapsedTime = elapsedTime;
                         runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
-                                Toast.makeText(getApplicationContext(), dataString, Toast.LENGTH_LONG).show();
+                                Toast.makeText(getApplicationContext(), String.valueOf(finalElapsedTime), Toast.LENGTH_LONG).show();
                             }
                         });
-                        mPolledTime = System.currentTimeMillis();
                     }
                 }
             }
