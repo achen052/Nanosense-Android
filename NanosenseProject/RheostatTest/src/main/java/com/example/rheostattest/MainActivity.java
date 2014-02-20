@@ -21,10 +21,8 @@ import android.widget.TextView;
 import android.widget.ToggleButton;
 
 /**
- * This is the main activity of the HelloIOIO example application.
- * 
- * It displays a toggle button on the screen, which enables control of the on-board LED. This example shows a very simple usage of the IOIO, by using the {@link IOIOActivity} class. For a more
- * advanced use case, see the HelloIOIOPower example.
+ *  This is a test program for the sensor device, with everything stripped down to the minimum.
+ *  This is used to verify that the hardware and communication is functioning correctly.
  */
 public class MainActivity extends IOIOActivity implements View.OnClickListener
 {

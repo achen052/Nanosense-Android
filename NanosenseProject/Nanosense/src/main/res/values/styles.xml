@@ -5,4 +5,21 @@
         <!-- Customize your theme here. -->
     </style>
 
+    <style name="GraphViewTitle">
+        <item name="android:textSize">@dimen/graph_view_title_font</item>
+        <item name="android:gravity">center</item>
+    </style>
+
+    <style name="GraphViewXLabel">
+        <item name="android:textSize">@dimen/graph_view_label_font</item>
+        <item name="android:gravity">center</item>
+        <item name="android:layout_gravity">bottom</item>
+    </style>
+
+    <style name="GraphViewYLabel">
+        <item name="android:textSize">@dimen/graph_view_label_font</item>
+        <item name="android:rotation">@dimen/graph_view_y_label_rotation</item>
+        <item name="android:layout_gravity">center_vertical</item>
+    </style>
+
 </resources>

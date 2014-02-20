@@ -34,7 +34,7 @@ public class NanoSenseActivity extends IOIOActivity {
     private static final String TAG = "NanoSense";
 
     private static final String FRAGMENT_TAG_GRAPH_VALUE = "GraphValueFragment";
-    private static final String FRAGMENT_TAG_GRAPH_VIEW = "GraphFragment";
+    private static final String FRAGMENT_TAG_GRAPH_VIEW = "GraphViewFragment";
 
     private static final int REQUEST_OPTIONS = 1;
 
@@ -69,20 +69,12 @@ public class NanoSenseActivity extends IOIOActivity {
         mProgressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
         mProgressDialog.setCancelable(false);
 
-        Fragment graphFragment = getFragmentManager().findFragmentByTag(FRAGMENT_TAG_GRAPH_VIEW);
-        if (graphFragment != null) {
-            getFragmentManager().beginTransaction().add(graphFragment, FRAGMENT_TAG_GRAPH_VIEW).commit();
-        } else {
-            Fragment graphFragment = GraphViewFragment.newInstance();
+        Fragment graphViewFragment = getFragmentManager().findFragmentByTag(FRAGMENT_TAG_GRAPH_VIEW);
+        if (graphViewFragment == null) {
+            graphViewFragment = GraphViewFragment.newInstance();
+            getFragmentManager().beginTransaction().add(R.id.container, graphViewFragment,
+                    FRAGMENT_TAG_GRAPH_VIEW).commit();
         }
-        /**
-        Fragment graphValueFragment = getFragmentManager().findFragmentByTag(FRAGMENT_TAG_GRAPH_VALUE);
-        if (graphValueFragment == null) {
-            getFragmentManager().beginTransaction()
-                    .add(R.id.container, new GraphValueFragment(), FRAGMENT_TAG_GRAPH_VALUE)
-                    .commit();
-        }
-         **/
     }
 
     public void showProgressDialog() {

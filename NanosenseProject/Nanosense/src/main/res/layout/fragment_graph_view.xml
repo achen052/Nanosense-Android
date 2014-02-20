@@ -3,5 +3,37 @@
     android:id="@+id/container"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@android:color/white"
     tools:context=".NanoSenseActivity"
-    tools:ignore="MergeRootFrame" />
+    tools:ignore="MergeRootFrame">
+
+    <view
+        class="edu.ucr.nanosense.GraphView"
+        android:id="@+id/graph_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_margin="@dimen/graph_view_padding"/>
+
+    <TextView
+        style="@style/GraphViewTitle"
+        android:id="@+id/graph_view_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/default_graph_view_title"/>
+
+    <TextView
+        style="@style/GraphViewXLabel"
+        android:id="@+id/graph_view_x_label"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/default_graph_view_x_label"/>
+
+    <!-- Needs to be programatically moved to line up since text length can vary -->
+    <TextView
+        style="@style/GraphViewYLabel"
+        android:id="@+id/graph_view_y_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/default_graph_view_y_label"/>
+
+</FrameLayout>

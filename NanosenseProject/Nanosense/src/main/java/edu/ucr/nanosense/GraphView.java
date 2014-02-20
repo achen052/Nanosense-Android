@@ -27,13 +27,6 @@ import java.util.ArrayList;
  */
 public class GraphView extends SurfaceView implements SurfaceHolder.Callback {
 
-    /**
-     * Used for storing the sensor reading values
-     * Nano Sensor (0 - 15): kOhms
-     * Humidity (16) : RH%
-     * Temperature (17) : C
-     */
-    private static ArrayList<ArrayList<Double>> mValues;
 
     private int mViewMode = Constants.Graph.VIEW_NANOSENSOR;
 

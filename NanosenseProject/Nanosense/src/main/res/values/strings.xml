@@ -57,4 +57,9 @@
     <string name="toggle_button_accelerometer_off">Accelerometer Off</string>
     <!-- End Options Activity -->
 
+    <!-- Begin GraphFragment -->
+    <string name="default_graph_view_title">Nano Sensors</string>
+    <string name="default_graph_view_x_label">Time (min)</string>
+    <string name="default_graph_view_y_label">Resistance (kOhms)</string>
+    <!-- End GraphFragment -->
 </resources>
