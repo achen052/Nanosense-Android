@@ -6,6 +6,10 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.os.Handler;
 import android.util.AttributeSet;
+import android.util.Log;
+import android.view.GestureDetector;
+import android.view.MotionEvent;
+import android.view.ScaleGestureDetector;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
@@ -25,27 +29,39 @@ import java.util.ArrayList;
  *
  * Last updated 02/13/2014
  */
-public class GraphView extends SurfaceView implements SurfaceHolder.Callback {
+public class GraphView extends SurfaceView implements SurfaceHolder.Callback,
+        GestureDetector.OnGestureListener, GestureDetector.OnDoubleTapListener,
+        ScaleGestureDetector.OnScaleGestureListener {
 
+    private static final String TAG = "GraphView";
+
+    /** Constant {@link android.graphics.Paint} for the Axis */
+    private static final Paint AXIS_PAINT = new Paint(Color.BLACK);
+
+    /** The current display mode of the graph */
     private int mViewMode = Constants.Graph.VIEW_NANOSENSOR;
-
+    /** Time that the last draw was started. Used to calculate FPS */
     private long mDrawStart = System.nanoTime();
 
-
     /** Current window maximum value to display in kOhms */
-    private double mWindowMax = Constants.Device.MAX_RHEO_RESISTANCE;
+    private double mWindowMax = Constants.Device.RHEOSTAT_RESISTANCE_MAX;
     /** Current window minimum value to display in kOhms */
     private double mWindowMin = 0.0;
 
-    private static final Paint AXIS_PAINT = new Paint(Color.BLACK);
+    private GestureDetector mGestureDetector;
 
-    private GraphThread mThread;
+/***************************************************************************************************
+ *
+ * GraphView Constructors
+ *
+ **************************************************************************************************/
 
     public GraphView(Context context) {
         super(context);
         SurfaceHolder holder = getHolder();
         holder.addCallback(this);
-        mThread = new GraphThread(holder, context, new Handler());
+        mGestureDetector = new GestureDetector(getContext(), this);
+        mGraphThread = new GraphThread(holder, context, new Handler());
         setFocusable(true);
         /** Initialize an array for each sensor **/
         for (int i = 0; i < Constants.Device.NUM_SENSORS; ++i) {
@@ -57,7 +73,8 @@ public class GraphView extends SurfaceView implements SurfaceHolder.Callback {
         super(context, attrs);
         SurfaceHolder holder = getHolder();
         holder.addCallback(this);
-        mThread = new GraphThread(holder, context, new Handler());
+        mGestureDetector = new GestureDetector(getContext(), this);
+        mGraphThread = new GraphThread(holder, context, new Handler());
         setFocusable(true);
         /** Initialize an array for each sensor **/
         for (int i = 0; i < Constants.Device.NUM_SENSORS; ++i) {
@@ -69,7 +86,8 @@ public class GraphView extends SurfaceView implements SurfaceHolder.Callback {
         super(context, attrs, defStyle);
         SurfaceHolder holder = getHolder();
         holder.addCallback(this);
-        mThread = new GraphThread(holder, context, new Handler());
+        mGestureDetector = new GestureDetector(getContext(), this);
+        mGraphThread = new GraphThread(holder, context, new Handler());
         setFocusable(true);
         /** Initialize an array for each sensor **/
         for (int i = 0; i < Constants.Device.NUM_SENSORS; ++i) {
@@ -77,8 +95,28 @@ public class GraphView extends SurfaceView implements SurfaceHolder.Callback {
         }
     }
 
+/***************************************************************************************************
+ *
+ * GraphView Methods
+ *
+ **************************************************************************************************/
+
+    public int nextViewMode() {
+        mViewMode = (mViewMode + 1) % Constants.Graph.NUM_VIEW_MODES;
+        return mViewMode;
+    }
+
+/***************************************************************************************************
+ *
+ * GraphThread Code (Updates what's drawn)
+ *
+ **************************************************************************************************/
+
+    private GraphThread mGraphThread;
+
     /**
-     * GraphThread is the Thread that makes the update/draw calls.
+     * GraphThread is the Thread that makes the update/draw calls for the
+     * {@link android.view.SurfaceHolder} and {@link android.view.SurfaceView}.
      */
     private class GraphThread extends Thread {
         private SurfaceHolder mSurfaceHolder;
@@ -112,6 +150,10 @@ public class GraphView extends SurfaceView implements SurfaceHolder.Callback {
         }
     }
 
+    /**
+     * onDraw handles the drawing of items to the graph. It uses {@link android.graphics.Canvas}
+     * @param canvas The {@link android.graphics.Canvas} to draw to.
+     */
     @Override
     protected void onDraw(Canvas canvas) {
         mDrawStart = System.nanoTime();
@@ -120,6 +162,10 @@ public class GraphView extends SurfaceView implements SurfaceHolder.Callback {
         drawDebug(canvas);
     }
 
+    /**
+     * Draws the last read value of each channel and the time as well as the FPS.
+     * @param canvas The {@link android.graphics.Canvas} to draw to.
+     */
     private void drawDebug(Canvas canvas) {
         int lastIndex = -1;
         Paint textPaint = new Paint(Color.BLACK);
@@ -127,7 +173,7 @@ public class GraphView extends SurfaceView implements SurfaceHolder.Callback {
         for (int i = 0; i < NanoSenseActivity.mData.size(); ++i) {
             lastIndex = NanoSenseActivity.mData.get(i).size() - 1;
             if (lastIndex >= 0) {
-                String debugString = "Sensor " + i + " - [";
+                String debugString = "Sensor " + i + " (kOhms) - [";
                 switch (i) {
                     case Constants.Thermistor.SENSOR_INDEX:
                         debugString = "Thermistor (C) - [";
@@ -157,20 +203,26 @@ public class GraphView extends SurfaceView implements SurfaceHolder.Callback {
                 canvas.drawLine(15, 5, 15, getHeight() - 5, AXIS_PAINT);
                 canvas.drawLine(5, getHeight() - 15, getWidth() - 5, getHeight() - 15, AXIS_PAINT);
                 break;
+            case Constants.Graph.VIEW_NANOSENSOR_DELTA:
+                break;
             case Constants.Graph.VIEW_TEMPERATURE:
+                canvas.drawLine(15, 5, 15, getHeight() - 5, AXIS_PAINT);
+                canvas.drawLine(5, getHeight() - 15, getWidth() - 5, getHeight() - 15, AXIS_PAINT);
                 break;
             case Constants.Graph.VIEW_HUMIDITY:
+                canvas.drawLine(15, 5, 15, getHeight() - 5, AXIS_PAINT);
+                canvas.drawLine(5, getHeight() - 15, getWidth() - 5, getHeight() - 15, AXIS_PAINT);
                 break;
         }
     }
 
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
-        if (mThread.getState() == Thread.State.TERMINATED) {
-            mThread = new GraphThread(holder, null, null);
+        if (mGraphThread.getState() == Thread.State.TERMINATED) {
+            mGraphThread = new GraphThread(holder, null, null);
         }
-        mThread.start();
-        mThread.setRunning(true);
+        mGraphThread.start();
+        mGraphThread.setRunning(true);
     }
 
     @Override
@@ -181,15 +233,106 @@ public class GraphView extends SurfaceView implements SurfaceHolder.Callback {
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
         boolean retry = true;
-        mThread.setRunning(false);
+        mGraphThread.setRunning(false);
         while (retry) {
             try {
-                mThread.join();
+                mGraphThread.join();
                 retry = false;
             } catch (InterruptedException interruptedException) {
                 interruptedException.printStackTrace();
             }
         }
+    }
+
+/***************************************************************************************************
+ *
+ * GestureListener Callbacks
+ *
+ **************************************************************************************************/
+
+    @Override
+    public boolean onDown(MotionEvent event) {
+        Log.d(TAG, "in onDown");
+        return false;
+    }
+
+    @Override
+    public void onShowPress(MotionEvent event) {
+        Log.d(TAG, "in onShowPress");
+    }
+
+    @Override
+    public boolean onSingleTapUp(MotionEvent event) {
+        Log.d(TAG, "in onSingleTapUp");
+        /** Switch views */
+        mViewMode = (mViewMode + 1) % Constants.Graph.NUM_VIEW_MODES;
+        return false;
+    }
+
+    @Override
+    public boolean onScroll(MotionEvent event1, MotionEvent event2, float distanceX,
+                            float distanceY) {
+        return false;
+    }
+
+    @Override
+    public void onLongPress(MotionEvent e) {
+        Log.d(TAG, "in onLongPress");
+    }
+
+    @Override
+    public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+        Log.d(TAG, "in onFling");
+        Log.d(TAG, "Flinged [velX, velY]: [" + velocityX + ", " + velocityY + "]");
+        return false;
+    }
+
+    @Override
+    public boolean onSingleTapConfirmed(MotionEvent e) {
+        Log.d(TAG, "in onSingleTapConfirmed");
+        return false;
+    }
+
+/***************************************************************************************************
+ *
+ * DoubleTapListener Callbacks
+ *
+ **************************************************************************************************/
+
+    @Override
+    public boolean onDoubleTap(MotionEvent e) {
+        Log.d(TAG, "in onDoubleTap");
+        return false;
+    }
+
+    @Override
+    public boolean onDoubleTapEvent(MotionEvent e) {
+        Log.d(TAG, "in onDoubleTapEvent");
+        return false;
+    }
+
+/***************************************************************************************************
+ *
+ * ScaleGestureListener Callbacks
+ *
+ **************************************************************************************************/
+
+    @Override
+    public boolean onScale(ScaleGestureDetector detector) {
+        Log.d(TAG, "in onScale");
+        return false;
+    }
+
+    @Override
+    public boolean onScaleBegin(ScaleGestureDetector detector) {
+        Log.d(TAG, "in onScaleBegin");
+        return false;
+    }
+
+    @Override
+    public void onScaleEnd(ScaleGestureDetector detector) {
+        Log.d(TAG, "in onScaleEnd");
+
     }
 
 }

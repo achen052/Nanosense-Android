@@ -37,6 +37,12 @@ public class NanoSenseActivity extends IOIOActivity {
     private static final String FRAGMENT_TAG_GRAPH_VALUE = "GraphValueFragment";
     private static final String FRAGMENT_TAG_GRAPH_VIEW = "GraphViewFragment";
 
+    private static final int INITIALIZE_SPI = 0;
+    private static final int INITIALIZE_MUX = 1;
+    private static final int INITIALIZE_ADC = 2;
+    private static final int INITIALIZE_UART = 3;
+    private static final int INITIALIZE_RHEOSTAT = 4;
+
     private static final int REQUEST_OPTIONS = 1;
 
     public static ArrayList<ArrayList<Data>> mData = new ArrayList<ArrayList<Data>>();
@@ -53,7 +59,12 @@ public class NanoSenseActivity extends IOIOActivity {
     /** The total duration that the polling has been run for */
     private long mRunDuration;
 
-    private ProgressDialog mProgressDialog;
+    /** {@link android.app.ProgressDialog} that shows the sensor resistance matching progress */
+    private ProgressDialog mSensorProgressDialog;
+    /**
+     * {@link android.app.ProgressDialog} that shows the device initialization progress (SPI, UART, etc)
+     */
+    private ProgressDialog mDeviceProgressDialog;
 
     // TODO: These need to be saved in on instance state
     private boolean mStarted = false;
@@ -70,11 +81,16 @@ public class NanoSenseActivity extends IOIOActivity {
         mServerPort = Constants.Options.DEFAULT_SERVER_PORT;
         mServerIp = Constants.Options.DEFAULT_SERVER_IP;
 
-        mProgressDialog = new ProgressDialog(this);
-        mProgressDialog.setTitle("Initializing...");
-        mProgressDialog.setMessage("Sensor 0");
-        mProgressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
-        mProgressDialog.setCancelable(false);
+        mDeviceProgressDialog = new ProgressDialog(this);
+        mDeviceProgressDialog.setTitle(R.string.device_progress_dialog_title);
+        mDeviceProgressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+        mDeviceProgressDialog.setCancelable(false);
+
+        mSensorProgressDialog = new ProgressDialog(this);
+        mSensorProgressDialog.setTitle(R.string.sensor_progress_dialog_title);
+        mSensorProgressDialog.setMessage(getString(R.string.sensor_progress_dialog_message));
+        mSensorProgressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+        mSensorProgressDialog.setCancelable(false);
 
         Fragment graphViewFragment = getFragmentManager().findFragmentByTag(FRAGMENT_TAG_GRAPH_VIEW);
         if (graphViewFragment == null) {
@@ -84,31 +100,76 @@ public class NanoSenseActivity extends IOIOActivity {
         }
     }
 
-    public void showProgressDialog() {
+    public void setDeviceDialogProgress(int progress) {
+        String message;
+        switch (progress) {
+            case INITIALIZE_SPI:
+                message = getString(R.string.device_progress_dialog_spi);
+                break;
+            case INITIALIZE_MUX:
+                message = getString(R.string.device_progress_dialog_mux);
+                break;
+            case INITIALIZE_ADC:
+                message = getString(R.string.device_progress_dialog_adc);
+                break;
+            case INITIALIZE_UART:
+                message = getString(R.string.device_progress_dialog_uart);
+                break;
+            case INITIALIZE_RHEOSTAT:
+                message = getString(R.string.device_progress_dialog_rheostat);
+                break;
+            default:
+                message = getString(R.string.device_progress_dialog_default);
+        }
+        mDeviceProgressDialog.setMessage(message);
+        mDeviceProgressDialog.setProgress(100 * progress / INITIALIZE_RHEOSTAT);
+    }
+
+    /**
+     * This function should be called to show the progress dialog. If progressDialog.show() is called
+     * from within the {@link edu.ucr.nanosense.NanoSenseActivity.Looper}, it will cause the device
+     * to disconnect. All long operations should be run on a separate thread.
+     *
+     * @param progressDialog
+     */
+    public void showProgressDialog(final ProgressDialog progressDialog) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                mProgressDialog.show();
+                progressDialog.show();
             }
         });
     }
 
-    public void setProgressDialog(int sensorNum) {
+    /**
+     * Updates the {@link android.app.ProgressDialog} message and progress to reflect the sensor
+     * number.
+     *
+     * @param sensorNum The sensor currently being matched.
+     */
+    public void setSensorDialogProgress(int sensorNum) {
         final int finalSensorNum = sensorNum;
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                mProgressDialog.setMessage("Sensor " + finalSensorNum);
-                mProgressDialog.setProgress(finalSensorNum * (100 / Constants.Device.NUM_PINS_NANOSENSOR));
+                String message = getString(R.string.sensor_progress_dialog_message) + finalSensorNum;
+                mSensorProgressDialog.setMessage(message);
+                mSensorProgressDialog.setProgress(finalSensorNum * (100 / Constants.Device.NUM_PINS_NANOSENSOR));
             }
         });
     }
 
-    public void dismissProgressDialog() {
+    /**
+     * Dismisses the passed in {@link android.app.ProgressDialog}. This function exists, since
+     * it is required to run on the UI thread and not the Looper. Failure to do so will cause
+     * the IOIO to disconnect.
+     * @param progressDialog The progress dialog to dismiss.
+     */
+    public void dismissProgressDialog(final ProgressDialog progressDialog) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                mProgressDialog.dismiss();
+                progressDialog.dismiss();
             }
         });
     }
@@ -218,16 +279,23 @@ public class NanoSenseActivity extends IOIOActivity {
          */
         @Override
         protected void setup() throws ConnectionLostException, InterruptedException {
+            showProgressDialog(mDeviceProgressDialog);
             /** Turn on LED when connected **/
             mLed = ioio_.openDigitalOutput(Constants.Device.PIN_LED, true);
             mLed.write(false);
             /** Initialize input/output pins **/
             // TODO: For some reason SPI won't initialize properly until unplugging and replugging. It's not properly reading back.
+            setDeviceDialogProgress(INITIALIZE_SPI);
             initializeSpi();
+            setDeviceDialogProgress(INITIALIZE_MUX);
             initializeMux();
+            setDeviceDialogProgress(INITIALIZE_ADC);
             initializeAnalog();
+            setDeviceDialogProgress(INITIALIZE_UART);
             initializeUart();
+            setDeviceDialogProgress(INITIALIZE_RHEOSTAT);
             initializeRheostat();
+            dismissProgressDialog(mDeviceProgressDialog);
         }
 
         /**
@@ -241,14 +309,25 @@ public class NanoSenseActivity extends IOIOActivity {
             /** This needs to be run on the UI Thread otherwise the connection is lost. Usually
              * longer operations such as SPI or Uart transmissions have to be run on a separate
              * thread. **/
-            // TODO: Try removing, or doing a separate thread from UI since that can potentially lock up.
              runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
                     Log.d(TAG, "Initializing Rheostat...");
-                    byte[] bytesToSend = {0x1C, 0x02};
+                    byte[] bytesToSend = {Constants.Commands.RHEOSTAT_INIT_UPPER,
+                            Constants.Commands.RHEOSTAT_INIT_LOWER};
                     try {
+                        /** Initializes the RDAC register */
                         mSpi.writeRead(bytesToSend, bytesToSend.length, bytesToSend.length, null, 0);
+                        /**
+                         * Write the initialize command again. The rheostat has a shift register
+                         * DIN->SDO so that we should get back the rheostat command.
+                         */
+                        byte[] bytesReceived = new byte[2];
+                        while (bytesReceived[0] != Constants.Commands.RHEOSTAT_INIT_UPPER ||
+                                bytesReceived[1] != Constants.Commands.RHEOSTAT_INIT_LOWER) {
+                            mSpi.writeRead(bytesToSend, bytesToSend.length, bytesToSend.length, bytesReceived, 2);
+                            Log.d(TAG, "Bytes received: " + bytesReceived[0] + "," + bytesReceived[1]);
+                        }
                         Log.d(TAG, "Rheostat Initialized");
                     } catch (ConnectionLostException e) {
                         e.printStackTrace();
@@ -300,7 +379,7 @@ public class NanoSenseActivity extends IOIOActivity {
                     new DigitalOutput.Spec(Constants.Device.PIN_SPI_MOSI),
                     new DigitalOutput.Spec(Constants.Device.PIN_SPI_CLK),
                     new DigitalOutput.Spec[] { new DigitalOutput.Spec(Constants.Device.PIN_SPI_SS)},
-                    new SpiMaster.Config(SpiMaster.Rate.RATE_2_6M, false, true));
+                    new SpiMaster.Config(SpiMaster.Rate.RATE_125K, false, true));
         }
 
         /**
@@ -328,9 +407,8 @@ public class NanoSenseActivity extends IOIOActivity {
          *
          * @param bitResistance
          */
-        public void writeRheostat(byte bitResistance) throws ConnectionLostException,
+        private synchronized void writeRheostat(byte bitResistance) throws ConnectionLostException,
                 InterruptedException {
-            // TODO: Move to Constants.Commands
             byte upper = (byte) (Constants.Commands.RHEOSTAT_WRITE | (bitResistance >> 6));
             byte lower = (byte) (bitResistance << 2);
             byte[] bytesToSend = {upper, lower};
@@ -350,26 +428,31 @@ public class NanoSenseActivity extends IOIOActivity {
          * asynchronous. This results in reading the ADC before the SPI is actually set using
          * different values for the calculation than what the bridge is actually set at.
          *
+         * Calculating the read value:
+         * C = command bits; D = data bits
+         * Response from rheostat is 2 bytes. 00[C3:C0][D9:D0].
+         * Upper byte is 00[C3:C0] [D9:D6] so drop the command and shift [D9:D6] to the proper
+         * position .
+         * Lower byte is [D5:D0] but since it's an 8-bit Rheostat the lower 2 bits are garbage
+         * and dropped.
+         * See data sheet on AD5271 for more details.
+         * http://www.analog.com/static/imported-files/data_sheets/AD5270_5271.pdf
+         *
          * @return Returns the bit resistance of the rheostat (0-255) corresponding to 0-100kOhms
          */
-        private int readRheostat() throws ConnectionLostException, InterruptedException {
+        private synchronized int readRheostat() throws ConnectionLostException, InterruptedException {
             byte[] upperArray = {Constants.Commands.RHEOSTAT_READ_UPPER};
             byte[] lowerArray = {Constants.Commands.RHEOSTAT_READ_LOWER};
             byte[] bytesReceived = new byte[1];
+            Log.d(TAG, "Reading Rheostat RDAC Register");
+            // TODO: For some reason the first time reading from RDAC doesn't give a response...
             /** Read/write one byte at a time since we're getting back a 16-bit response **/
             mSpi.writeRead(upperArray, upperArray.length, upperArray.length, bytesReceived, 1);
             int upperInt = bytesReceived[0] & 0xFF;
+            Log.d(TAG, "Upper byte" + upperInt);
             mSpi.writeRead(lowerArray, lowerArray.length, lowerArray.length, bytesReceived, 1);
             int lowerInt = bytesReceived[0] & 0xFF;
-            /**
-             * C = command bits; D = data bits
-             * Response from rheostat is 2 bytes. 00[C3:C0][D9:D0].
-             * Upper byte is 00[C3:C0] [D9:D6] so drop the command and shift [D9:D6] to the proper
-             * position .
-             * Lower byte is [D5:D0] but since it's an 8-bit Rheostat the lower 2 bits are garbage
-             * and dropped.
-             * See data sheet on AD5271 for more details.
-             **/
+            Log.d(TAG, "Lower byte" + lowerInt);
             int readVal = ((upperInt & 0x03) << 6 | (lowerInt >> 2));
             return readVal;
         }
@@ -381,14 +464,25 @@ public class NanoSenseActivity extends IOIOActivity {
         private void writeReadRheostat(byte bitResistance) throws ConnectionLostException,
                 InterruptedException{
             writeRheostat(bitResistance);
-            while(readRheostat() != bitResistance);
+            /** Block until rheostat is set */
+            long readSendTime = System.currentTimeMillis();
+            int readResistance = readRheostat();
+            int intResistance = bitResistance & 0xFF;
+            while(readResistance != intResistance) {
+                /** If we've blocked for more than a second the packet probably dropped. */
+                if (System.currentTimeMillis() - readSendTime >
+                        Constants.Device.SPI_WRITE_READ_TIMEOUT) {
+                    writeRheostat(bitResistance);
+                    readResistance = readRheostat();
+                }
+            }
         }
 
         /**
          * matchResistance attempts to match the resistance of the rheostat to the nano sensor for
          * the specified pin. This is done by checking the output voltage and attempting to get it as
          * close as possible to 1/2 of the input voltage. Since the voltage value from analogRead gives
-         * a value between 0 and 1, it multiplies by 1024 since it's a 10-bit ADC and tries to match it
+         * a value between 0 and 1, it multiplies by 1023 since it's a 10-bit ADC and tries to match it
          * to 512.
          *
          * The matching is done using a recursive binary search algorithm.
@@ -416,9 +510,12 @@ public class NanoSenseActivity extends IOIOActivity {
              * the nano sensors connection is broken. **/
             int bitVoltage = (int) (mAnalogPins[Constants.Device.ADC_NANO_SENSOR].read() *
                     Constants.Device.MAX_BIT_VOLTAGE);
-            if (bitVoltage > 512) {
+            Log.d(TAG, "Bit Voltage: " + bitVoltage);
+            if (bitVoltage < 512) {
+                Log.d(TAG, "Less than");
                 return matchResistance(low, mid - 1);
             } else if (bitVoltage > 512) {
+                Log.d(TAG, "Greater than");
                 return matchResistance(mid + 1, high);
             } else {
                 return (byte) mid;
@@ -427,17 +524,16 @@ public class NanoSenseActivity extends IOIOActivity {
 
         /**
          * Calculates the resistance values of the sensor, and attempts to match the resistance.
-         * Resistances are then stored in {@link mInitialResistances}
+         * Resistances are then stored in {@link this#mInitialResistances}
          */
         private void matchResistances() throws ConnectionLostException, InterruptedException {
-            // TODO: Add dialog showing that they are being initialized and which pin it's on.
-            showProgressDialog();
+            showProgressDialog(mSensorProgressDialog);
             for (int i = 0; i < Constants.Device.NUM_PINS_NANOSENSOR; ++i) {
-                setProgressDialog(i);
+                setSensorDialogProgress(i);
                 setMux((byte) i);
                 mInitialResistances[i] = matchResistance(0, Constants.Device.MAX_BIT_RESISTANCE);
             }
-            dismissProgressDialog();
+            dismissProgressDialog(mSensorProgressDialog);
         }
 
         private void initializeUart() throws ConnectionLostException, InterruptedException {
@@ -539,8 +635,9 @@ public class NanoSenseActivity extends IOIOActivity {
             /**
              * Divider resistance in kOhms.
              */
-            double dividerResistance = (double) bitResistance / Constants.Device.MAX_BIT_RESISTANCE
-                    * Constants.Device.MAX_RHEO_RESISTANCE;
+            int intResistance = bitResistance & 0xFF;
+            double dividerResistance = (double) intResistance / Constants.Device.MAX_BIT_RESISTANCE
+                    * Constants.Device.RHEOSTAT_RESISTANCE_MAX + Constants.Device.RHEOSTAT_RESISTANCE_NOMINAL;
             double sensorResistance = readVoltage * dividerResistance /
                     (Constants.Device.VOLTAGE_REFERENCE - readVoltage);
             Log.d(TAG, "Sensor Resistance: " + sensorResistance);
@@ -612,6 +709,16 @@ public class NanoSenseActivity extends IOIOActivity {
             return relativeHumidity;
         }
 
+        /**
+         * Reads the thermistor and calculates the temperature. The thermistor is in series
+         * with a 10kOhm resistor setup as a voltage bridge with 3.3V input.
+         * 3.3V----/\/\/\/\----Vout----/\/\/\/\----GND
+         *        Thermistor           10kOhms
+         *
+         * @return The temperature based on the resistance of the thermistor in Celcius
+         * @throws ConnectionLostException
+         * @throws InterruptedException
+         */
         private double readThermistor() throws ConnectionLostException, InterruptedException {
             double readVoltage = (double) mAnalogPins[Constants.Device.ADC_THERMISTOR].getVoltage();
             /** Calculate resistance of thermistor. Simple voltage bridge with R1 as thermistor and
@@ -632,6 +739,7 @@ public class NanoSenseActivity extends IOIOActivity {
                     matchResistances();
                     mInitialized = true;
                 } else {
+                    // TODO: Use try catch, and if disconnected, stop polling.
                     long elapsedTime = System.currentTimeMillis() - mPolledTime;
                     if (mInitialized && elapsedTime >= mPollingRate) {
                         if (mPolledTime != 0) {

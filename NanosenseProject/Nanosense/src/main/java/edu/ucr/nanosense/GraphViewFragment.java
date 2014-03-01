@@ -3,7 +3,10 @@ package edu.ucr.nanosense;
 import android.app.Fragment;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.GestureDetector;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
+import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
@@ -65,6 +68,45 @@ public class GraphViewFragment extends Fragment implements ViewTreeObserver.OnGl
     }
 
     /**
+     * Updates the labels for the graph to match what mode {@link edu.ucr.nanosense.GraphView} is
+     * in.
+     *
+     * @param viewMode The view mode as defined in {@link edu.ucr.nanosense.Constants.Graph}.
+     */
+    private void updateLabels(int viewMode) {
+        switch (viewMode) {
+            case Constants.Graph.VIEW_NANOSENSOR:
+                mTextViewGraphTitle.setText(R.string.graph_view_title_nano_sensor);
+                mTextViewGraphXLabel.setText(R.string.graph_view_x_label_nano_sensor);
+                mTextViewGraphYLabel.setText(R.string.graph_view_y_label_nano_sensor);
+                break;
+            case Constants.Graph.VIEW_NANOSENSOR_DELTA:
+                mTextViewGraphTitle.setText(R.string.graph_view_title_nano_sensor_delta);
+                mTextViewGraphXLabel.setText(R.string.graph_view_x_label_nano_sensor_delta);
+                mTextViewGraphYLabel.setText(R.string.graph_view_y_label_nano_sensor_delta);
+                break;
+            case Constants.Graph.VIEW_HUMIDITY:
+                mTextViewGraphTitle.setText(R.string.graph_view_title_humidity);
+                mTextViewGraphXLabel.setText(R.string.graph_view_x_label_humidity);
+                mTextViewGraphYLabel.setText(R.string.graph_view_y_label_humidity);
+                break;
+            case Constants.Graph.VIEW_TEMPERATURE:
+                mTextViewGraphTitle.setText(R.string.graph_view_title_temperature);
+                mTextViewGraphXLabel.setText(R.string.graph_view_x_label_temperature);
+                mTextViewGraphYLabel.setText(R.string.graph_view_y_label_temperature);
+                break;
+            default:
+                break;
+        }
+    }
+
+/***************************************************************************************************
+ *
+ * GlobalLayoutListener Callbacks
+ *
+ **************************************************************************************************/
+
+    /**
      * Global layout listener for when the view has changed. Updates the margin for the vertical
      * Y Axis label.
      */
@@ -81,9 +123,15 @@ public class GraphViewFragment extends Fragment implements ViewTreeObserver.OnGl
         mTextViewGraphYLabel.requestLayout();
     }
 
+/***************************************************************************************************
+ *
+ * OnClickListener Callbacks
+ *
+ **************************************************************************************************/
+
     @Override
-    public void onClick(View view) {
-        // TODO; Update Labels.
-        // TODO: Switch to gesture listener? Maybe implement directly in GraphView and add callback interface to onChanged?
+    public void onClick(View v) {
+        updateLabels(mGraphView.nextViewMode());
     }
+
 }

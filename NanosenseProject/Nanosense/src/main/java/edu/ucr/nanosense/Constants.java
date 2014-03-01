@@ -22,6 +22,8 @@ public class Constants {
         public static final byte RHEOSTAT_WRITE = 0x04;
         public static final byte RHEOSTAT_READ_UPPER = (byte) 0x80;
         public static final byte RHEOSTAT_READ_LOWER = 0x00;
+        public static final byte RHEOSTAT_INIT_UPPER = 0x1C;
+        public static final byte RHEOSTAT_INIT_LOWER = 0x02;
     }
 
     /**
@@ -78,13 +80,18 @@ public class Constants {
         public static final double VOLTAGE_REFERENCE = 3.3;
 
         /** Max rheostat resistance in kOhms **/
-        public static final double MAX_RHEO_RESISTANCE = 100.0;
+        public static final double RHEOSTAT_RESISTANCE_MAX = 100.0;
+        /** Nominal resistance in kOhms (Rheostat internal resistance) */
+        public static final double RHEOSTAT_RESISTANCE_NOMINAL = 0.070;
 
         /** Uart baud rate **/
         public static final int UART_RATE = 115200;
 
         /** Number of sensors (14 nanosensors, 1 thermistor, 1 temp, 1 humidity **/
         public static final int NUM_SENSORS = 17;
+
+        /** Write read timeout before resending in ms */
+        public static final long SPI_WRITE_READ_TIMEOUT = 1000;
     }
 
     public class Temperature {
@@ -100,9 +107,11 @@ public class Constants {
      */
     public class Graph {
         public static final int VIEW_NANOSENSOR = 0;
-        public static final int VIEW_HUMIDITY = 1;
-        public static final int VIEW_TEMPERATURE = 2;
+        public static final int VIEW_NANOSENSOR_DELTA = 1;
+        public static final int VIEW_HUMIDITY = 2;
+        public static final int VIEW_TEMPERATURE = 3;
 
+        public static final int NUM_VIEW_MODES = 4;
 
         /** Max resistance in kOhms **/
         public static final int MAX_RESISTANCE = 100;

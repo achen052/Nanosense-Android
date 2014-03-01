@@ -19,14 +19,14 @@
         android:id="@+id/graph_view_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/default_graph_view_title"/>
+        android:text="@string/graph_view_title_default"/>
 
     <TextView
         style="@style/GraphViewXLabel"
         android:id="@+id/graph_view_x_label"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/default_graph_view_x_label"/>
+        android:text="@string/graph_view_x_label_default"/>
 
     <!-- Needs to be programatically moved to line up since text length can vary -->
     <TextView
@@ -34,6 +34,6 @@
         android:id="@+id/graph_view_y_label"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/default_graph_view_y_label"/>
+        android:text="@string/graph_view_y_label_default"/>
 
 </FrameLayout>
