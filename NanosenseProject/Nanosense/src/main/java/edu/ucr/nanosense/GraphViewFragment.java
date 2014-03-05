@@ -25,11 +25,9 @@ import android.widget.TextView;
  *
  */
 public class GraphViewFragment extends Fragment implements ViewTreeObserver.OnGlobalLayoutListener,
-        View.OnClickListener {
+        GraphView.OnViewModeChangedListener {
 
     private GraphView mGraphView;
-
-    private FrameLayout mFrameLayoutContainer;
 
     private TextView mTextViewGraphTitle;
     private TextView mTextViewGraphXLabel;
@@ -47,9 +45,8 @@ public class GraphViewFragment extends Fragment implements ViewTreeObserver.OnGl
                              Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_graph_view, null);
         if (rootView != null) {
-            mFrameLayoutContainer = (FrameLayout) rootView.findViewById(R.id.container);
-            mFrameLayoutContainer.setOnClickListener(this);
             mGraphView = (GraphView) rootView.findViewById(R.id.graph_view);
+            mGraphView.setOnViewModeChangedListener(this);
             mTextViewGraphTitle = (TextView) rootView.findViewById(R.id.graph_view_title);
             mTextViewGraphXLabel = (TextView) rootView.findViewById(R.id.graph_view_x_label);
             mTextViewGraphYLabel = (TextView) rootView.findViewById(R.id.graph_view_y_label);
@@ -130,8 +127,7 @@ public class GraphViewFragment extends Fragment implements ViewTreeObserver.OnGl
  **************************************************************************************************/
 
     @Override
-    public void onClick(View v) {
-        updateLabels(mGraphView.nextViewMode());
+    public void onViewModeChanged(int viewMode) {
+        updateLabels(viewMode);
     }
-
 }

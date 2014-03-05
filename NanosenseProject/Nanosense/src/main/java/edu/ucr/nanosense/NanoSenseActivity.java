@@ -37,6 +37,7 @@ public class NanoSenseActivity extends IOIOActivity {
     private static final String FRAGMENT_TAG_GRAPH_VALUE = "GraphValueFragment";
     private static final String FRAGMENT_TAG_GRAPH_VIEW = "GraphViewFragment";
 
+    /** Constants for {@link android.app.ProgressDialog} for initializing device */
     private static final int INITIALIZE_SPI = 0;
     private static final int INITIALIZE_MUX = 1;
     private static final int INITIALIZE_ADC = 2;
@@ -46,6 +47,12 @@ public class NanoSenseActivity extends IOIOActivity {
     private static final int REQUEST_OPTIONS = 1;
 
     public static ArrayList<ArrayList<Data>> mData = new ArrayList<ArrayList<Data>>();
+    /**
+     * Min and max values seen so far. Used by {@link edu.ucr.nanosense.GraphView} for setting
+     * window bounds.
+     */
+    public static ArrayList<Double> mMaxValues = new ArrayList<Double>();
+    public static ArrayList<Double> mMinValues = new ArrayList<Double>();
 
     private int mPollingRate;
     private int mServerPort;
@@ -57,7 +64,7 @@ public class NanoSenseActivity extends IOIOActivity {
     private long mPolledTime;
 
     /** The total duration that the polling has been run for */
-    private long mRunDuration;
+    private long mElapsedTime;
 
     /** {@link android.app.ProgressDialog} that shows the sensor resistance matching progress */
     private ProgressDialog mSensorProgressDialog;
@@ -92,12 +99,19 @@ public class NanoSenseActivity extends IOIOActivity {
         mSensorProgressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
         mSensorProgressDialog.setCancelable(false);
 
+        for (int i = 0; i < Constants.Device.NUM_SENSORS; ++i) {
+            mData.add(new ArrayList<Data>());
+            mMaxValues.add(Double.NEGATIVE_INFINITY);
+            mMinValues.add(Double.POSITIVE_INFINITY);
+        }
+
         Fragment graphViewFragment = getFragmentManager().findFragmentByTag(FRAGMENT_TAG_GRAPH_VIEW);
         if (graphViewFragment == null) {
             graphViewFragment = GraphViewFragment.newInstance();
             getFragmentManager().beginTransaction().add(R.id.container, graphViewFragment,
                     FRAGMENT_TAG_GRAPH_VIEW).commit();
         }
+
     }
 
     public void setDeviceDialogProgress(int progress) {
@@ -244,6 +258,12 @@ public class NanoSenseActivity extends IOIOActivity {
     protected IOIOLooper createIOIOLooper() {
         return new Looper();
     }
+
+/***************************************************************************************************
+ *
+ * IOIOLooper
+ *
+ **************************************************************************************************/
 
     /**
      * Looper should be strictly for communication with the device since the connection
@@ -743,21 +763,37 @@ public class NanoSenseActivity extends IOIOActivity {
                     long elapsedTime = System.currentTimeMillis() - mPolledTime;
                     if (mInitialized && elapsedTime >= mPollingRate) {
                         if (mPolledTime != 0) {
-                            mRunDuration += elapsedTime;
+                            mElapsedTime += elapsedTime;
                         }
+                        /** Read sensor values */
                         mPolledTime = System.currentTimeMillis();
                         double[] sensorResistances = readNanoSensors();
                         double tempCelcius = readTemperature();
                         double relativeHumidity = readHumidity(tempCelcius);
                         double thermistorCelcius = readThermistor();
-                        int i = 0;
-                        /** Save data */
-                        for ( ; i < sensorResistances.length; ++i) {
-                            mData.get(i).add(new Data(mRunDuration, sensorResistances[i]));
+
+                        /** Save sensor data and get min/max. */
+                        for (int i = 0 ; i < sensorResistances.length; ++i) {
+                            mData.get(i).add(new Data(mElapsedTime, sensorResistances[i]));
+                            updateMax(i, sensorResistances[i]);
+                            updateMin(i, sensorResistances[i]);
                         }
-                        mData.get(i++).add(new Data(mRunDuration, thermistorCelcius));
-                        mData.get(i++).add(new Data(mRunDuration, relativeHumidity));
-                        mData.get(i).add(new Data(mRunDuration, tempCelcius));
+
+                        /** Save thermistor celcius data and min/max */
+                        mData.get(Constants.Thermistor.SENSOR_INDEX).add(new Data(mElapsedTime, thermistorCelcius));
+                        updateMax(Constants.Thermistor.SENSOR_INDEX, thermistorCelcius);
+                        updateMin(Constants.Thermistor.SENSOR_INDEX, thermistorCelcius);
+
+                        /** Save relative humidity data and min/max */
+                        mData.get(Constants.Humidity.SENSOR_INDEX).add(new Data(mElapsedTime, relativeHumidity));
+                        updateMax(Constants.Humidity.SENSOR_INDEX, relativeHumidity);
+                        updateMin(Constants.Humidity.SENSOR_INDEX, relativeHumidity);
+
+                        /** Save temperature data and min/max */
+                        mData.get(Constants.Temperature.SENSOR_INDEX).add(new Data(mElapsedTime, tempCelcius));
+                        updateMax(Constants.Temperature.SENSOR_INDEX, tempCelcius);
+                        updateMin(Constants.Temperature.SENSOR_INDEX, tempCelcius);
+
                         StringBuilder sb = new StringBuilder();
                         DecimalFormat df = new DecimalFormat("#.##");
                         final String tempCelciusString = df.format(tempCelcius);
@@ -794,6 +830,29 @@ public class NanoSenseActivity extends IOIOActivity {
                 }
             }
         }
+
+        private void updateMin(final int i, final double dataValue) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if (dataValue < mMinValues.get(i)) {
+                        mMinValues.set(i, dataValue);
+                    }
+                }
+            });
+        }
+
+        private void updateMax(final int i, final double dataValue) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if (dataValue > mMaxValues.get(i)) {
+                        mMaxValues.set(i, dataValue);
+                    }
+                }
+            });
+        }
+
 
         @Override
         public void onSensorChanged(SensorEvent event) {
