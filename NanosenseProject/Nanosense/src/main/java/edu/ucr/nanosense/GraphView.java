@@ -62,6 +62,7 @@ public class GraphView extends SurfaceView implements SurfaceHolder.Callback,
 
     private GestureDetector mGestureDetector;
     private ScaleGestureDetector mScaleGestureDetector;
+    private boolean[] visiblePins;
 
 /***************************************************************************************************
  *
@@ -145,6 +146,11 @@ public class GraphView extends SurfaceView implements SurfaceHolder.Callback,
         return mViewMode;
     }
 
+    public void setVisiblePins(boolean[] visiblePins) {
+        mIsPinVisible = visiblePins;
+    }
+
+
 /***************************************************************************************************
  *
  * GraphThread Code (Updates what's drawn)
@@ -199,7 +205,114 @@ public class GraphView extends SurfaceView implements SurfaceHolder.Callback,
         canvas.drawColor(Color.WHITE);
         drawAxis(canvas);
         drawLabels(canvas);
-        drawDebug(canvas);
+        drawData(canvas);
+//        drawDebug(canvas);
+    }
+
+    private void drawData(Canvas canvas) {
+        int dataPoints = 0;
+        double range = 0;
+        float width = getWidth() - AXIS_PADDING_HORIZONTAL;
+        float height = getHeight() - AXIS_PADDING_VERTICAL;
+        switch (mViewMode) {
+            case Constants.Graph.VIEW_NANOSENSOR:
+                range = mWindowYMax[Constants.Graph.VIEW_NANOSENSOR] -
+                        mWindowYMin[Constants.Graph.VIEW_NANOSENSOR];
+                ArrayList<ArrayList<Data>> sensorArrayData = NanoSenseActivity.mData;
+                Paint sensorPaint = new Paint(Color.RED);
+                for (int i = 0; i < Constants.Device.NUM_PINS_NANOSENSOR; ++i) {
+                    if (mIsPinVisible[i]) {
+                        switch (i) {
+                            case 0: sensorPaint.setColor(Color.RED); break;
+                            case 1: sensorPaint.setColor(Color.rgb(128, 0, 0)); break;
+                            case 2: sensorPaint.setColor(Color.GREEN); break;
+                            case 3: sensorPaint.setColor(Color.rgb(0, 128, 0)); break;
+                            case 4: sensorPaint.setColor(Color.BLUE); break;
+                            case 5: sensorPaint.setColor(Color.rgb(0, 0, 128)); break;
+                            case 6: sensorPaint.setColor(Color.CYAN); break;
+                            case 7: sensorPaint.setColor(Color.MAGENTA); break;
+                            case 8: sensorPaint.setColor(Color.YELLOW); break;
+                            case 9: sensorPaint.setColor(Color.BLACK); break;
+                            case 10: sensorPaint.setColor(Color.DKGRAY); break;
+                            case 11: sensorPaint.setColor(Color.LTGRAY); break;
+                            default: sensorPaint.setColor(Color.BLACK); break;
+                        }
+                        ArrayList<Data> sensorData = sensorArrayData.get(i);
+                        int lastIndex = sensorData.size() - 1;
+                        dataPoints = sensorData.size();
+                        if (dataPoints >= 2) {
+                            for (int j = 0; j < sensorData.size() - 1; ++j) {
+                                float startX = (float) j / dataPoints * width + AXIS_PADDING_HORIZONTAL;
+                                float startY = (float) ((mWindowYMax[Constants.Graph.VIEW_NANOSENSOR] -
+                                        sensorData.get(j).mValue) / range * height);
+                                float stopX = (float) (j + 1) / dataPoints * width + AXIS_PADDING_HORIZONTAL;
+                                float stopY = (float) ((mWindowYMax[Constants.Graph.VIEW_NANOSENSOR] -
+                                        sensorData.get(j + 1).mValue) / range * height);
+                                if (startY > height) {
+                                    startY = height;
+                                }
+                                    if (stopY > height) {
+                                        stopY = height;
+                                    }
+                                    canvas.drawLine(startX, startY, stopX, stopY, sensorPaint);
+                                }
+                            }
+                    }
+                }
+                break;
+            case Constants.Graph.VIEW_NANOSENSOR_DELTA:
+                break;
+            case Constants.Graph.VIEW_HUMIDITY:
+                ArrayList<Data> humidityData = NanoSenseActivity.mData
+                        .get(Constants.Humidity.SENSOR_INDEX);
+                range = mWindowYMax[Constants.Graph.VIEW_HUMIDITY] -
+                        mWindowYMin[Constants.Graph.VIEW_HUMIDITY];
+                dataPoints = humidityData.size();
+                if (dataPoints >= 2) {
+                    for (int i = 0; i < humidityData.size() - 1; ++i) {
+                        float startX = (float) i / dataPoints * width + AXIS_PADDING_HORIZONTAL;
+                        float startY = (float) ((mWindowYMax[Constants.Graph.VIEW_HUMIDITY] -
+                                humidityData.get(i).mValue) / range * height);
+                        float stopX = (float) (i + 1) / dataPoints * width + AXIS_PADDING_HORIZONTAL;
+                        float stopY = (float) ((mWindowYMax[Constants.Graph.VIEW_HUMIDITY] -
+                                humidityData.get(i + 1).mValue) / range * height);
+                        if (startY > height) {
+                            startY = height;
+                        }
+                        if (stopY > height) {
+                            stopY = height;
+                        }
+                        canvas.drawLine(startX, startY, stopX, stopY, AXIS_PAINT);
+                    }
+                }
+                break;
+            case Constants.Graph.VIEW_TEMPERATURE:
+                ArrayList<Data> temperatureData = NanoSenseActivity.mData
+                        .get(Constants.Temperature.SENSOR_INDEX);
+                range = mWindowYMax[Constants.Graph.VIEW_TEMPERATURE] -
+                        mWindowYMin[Constants.Graph.VIEW_TEMPERATURE];
+                dataPoints = temperatureData.size();
+                if (dataPoints >= 2) {
+                    for (int i = 0; i < temperatureData.size() - 1; ++i) {
+                        float startX = (float) i / dataPoints * width + AXIS_PADDING_HORIZONTAL;
+                        float startY = (float) ((mWindowYMax[Constants.Graph.VIEW_TEMPERATURE] -
+                                temperatureData.get(i).mValue) / range * height);
+                        float stopX = (float) (i + 1) / dataPoints * width + AXIS_PADDING_HORIZONTAL;
+                        float stopY = (float) ((mWindowYMax[Constants.Graph.VIEW_TEMPERATURE] -
+                                temperatureData.get(i + 1).mValue) / range * height);
+                        if (startY > height) {
+                            startY = height;
+                        }
+                        if (stopY > height) {
+                            stopY = height;
+                        }
+                        canvas.drawLine(startX, startY, stopX, stopY, AXIS_PAINT);
+                    }
+                }
+                break;
+            default:
+                break;
+        }
     }
 
     /**
@@ -214,21 +327,27 @@ public class GraphView extends SurfaceView implements SurfaceHolder.Callback,
         double maxY = 0;
         switch (mViewMode) {
             case Constants.Graph.VIEW_NANOSENSOR:
+                double sensorMax = Double.NEGATIVE_INFINITY;
+                double sensorMin = Double.POSITIVE_INFINITY;
                 for (int i = 0; i < mIsPinVisible.length; ++i) {
                     /** Get the min and max resistance for the visible pins. */
                     if (mIsPinVisible[i] && mIsZoomExtent) {
                         double channelMax = NanoSenseActivity.mMaxValues.get(i);
                         double channelMin = NanoSenseActivity.mMinValues.get(i);
-                        if (channelMax > mWindowYMax[Constants.Graph.VIEW_NANOSENSOR]) {
-                            mWindowYMax[Constants.Graph.VIEW_NANOSENSOR] = channelMax;
+                        if (channelMax > sensorMax) {
+                            sensorMax = channelMax;
                         }
-                        if (channelMin < mWindowYMax[Constants.Graph.VIEW_NANOSENSOR]) {
-                            mWindowYMin[Constants.Graph.VIEW_NANOSENSOR] = channelMin;
+                        if (channelMin < sensorMin) {
+                            sensorMin = channelMin;
                         }
                     }
                 }
+                if (mIsZoomExtent) {
+                    mWindowYMax[Constants.Graph.VIEW_NANOSENSOR] = sensorMax;
+                    mWindowYMin[Constants.Graph.VIEW_NANOSENSOR] = sensorMin;
+                }
                 maxY = mWindowYMax[Constants.Graph.VIEW_NANOSENSOR];
-                minY = mWindowYMax[Constants.Graph.VIEW_NANOSENSOR];
+                minY = mWindowYMin[Constants.Graph.VIEW_NANOSENSOR];
                 break;
             case Constants.Graph.VIEW_NANOSENSOR_DELTA:
                 break;
@@ -258,6 +377,9 @@ public class GraphView extends SurfaceView implements SurfaceHolder.Callback,
         DecimalFormat decimalFormat = new DecimalFormat("0.00");
         /** Y-Label */
         canvas.drawText(decimalFormat.format(minY), 0, getHeight() - AXIS_PADDING_VERTICAL,
+                textPaint);
+        double midY = (maxY + minY) / 2.0;
+        canvas.drawText(decimalFormat.format(midY), 0, getHeight() / 2 - AXIS_PADDING_VERTICAL,
                 textPaint);
         canvas.drawText(decimalFormat.format(maxY), 0, AXIS_PADDING_VERTICAL, textPaint);
         /** X-Label */
@@ -315,27 +437,27 @@ public class GraphView extends SurfaceView implements SurfaceHolder.Callback,
                 canvas.drawLine(AXIS_PADDING_HORIZONTAL, AXIS_PADDING_VERTICAL,
                         AXIS_PADDING_HORIZONTAL, getHeight() - AXIS_PADDING_VERTICAL, AXIS_PAINT);
                 canvas.drawLine(AXIS_PADDING_HORIZONTAL, getHeight() - AXIS_PADDING_VERTICAL,
-                        getWidth() - AXIS_PADDING_HORIZONTAL, getHeight() - AXIS_PADDING_VERTICAL,
+                        getWidth(), getHeight() - AXIS_PADDING_VERTICAL,
                         AXIS_PAINT);
                 break;
             case Constants.Graph.VIEW_NANOSENSOR_DELTA:
                 canvas.drawLine(AXIS_PADDING_HORIZONTAL, AXIS_PADDING_VERTICAL,
                         AXIS_PADDING_HORIZONTAL, getHeight() - AXIS_PADDING_VERTICAL, AXIS_PAINT);
                 canvas.drawLine(AXIS_PADDING_HORIZONTAL, getHeight() / 2,
-                        getWidth() - AXIS_PADDING_HORIZONTAL, getHeight() / 2, AXIS_PAINT);
+                        getWidth(), getHeight() / 2, AXIS_PAINT);
                 break;
             case Constants.Graph.VIEW_TEMPERATURE:
                 canvas.drawLine(AXIS_PADDING_HORIZONTAL, AXIS_PADDING_VERTICAL,
                         AXIS_PADDING_HORIZONTAL, getHeight() - AXIS_PADDING_VERTICAL, AXIS_PAINT);
                 canvas.drawLine(AXIS_PADDING_HORIZONTAL, getHeight() - AXIS_PADDING_VERTICAL,
-                        getWidth() - AXIS_PADDING_HORIZONTAL, getHeight() - AXIS_PADDING_VERTICAL,
+                        getWidth(), getHeight() - AXIS_PADDING_VERTICAL,
                         AXIS_PAINT);
                 break;
             case Constants.Graph.VIEW_HUMIDITY:
                 canvas.drawLine(AXIS_PADDING_HORIZONTAL, AXIS_PADDING_VERTICAL,
                         AXIS_PADDING_HORIZONTAL, getHeight() - AXIS_PADDING_VERTICAL, AXIS_PAINT);
                 canvas.drawLine(AXIS_PADDING_HORIZONTAL, getHeight() - AXIS_PADDING_VERTICAL,
-                        getWidth() - AXIS_PADDING_HORIZONTAL, getHeight() - AXIS_PADDING_VERTICAL,
+                        getWidth(), getHeight() - AXIS_PADDING_VERTICAL,
                         AXIS_PAINT);
                 break;
         }
@@ -379,9 +501,9 @@ public class GraphView extends SurfaceView implements SurfaceHolder.Callback,
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         /** Check for scaling then scroll, touch, etc */
-        mScaleGestureDetector.onTouchEvent(event);
-        if(!mScaleGestureDetector.isInProgress()) {
-            mGestureDetector.onTouchEvent(event);
+
+        if (!mGestureDetector.onTouchEvent(event)) {
+            mScaleGestureDetector.onTouchEvent(event);
         }
         return super.onTouchEvent(event);
     }
@@ -413,8 +535,22 @@ public class GraphView extends SurfaceView implements SurfaceHolder.Callback,
     @Override
     public boolean onScroll(MotionEvent event1, MotionEvent event2, float distanceX,
                             float distanceY) {
-        // TODO: Implement scrolling
+        // TODO: Implement scrolling X
+        if (mIsZoomExtent) {
+            return false;
+        }
         Log.d(TAG, "in onScroll");
+        double height = getHeight() - AXIS_PADDING_HORIZONTAL;
+        Log.d(TAG, "Scrolled Y: " + distanceY);
+        double range = mWindowYMax[mViewMode] - mWindowYMin[mViewMode];
+        double scrollRatio = distanceY / height;
+        double scrollShift = range * scrollRatio;
+        double maxY = mWindowYMax[mViewMode] - scrollShift;
+        double minY = mWindowYMin[mViewMode] - scrollShift;
+        if (minY >= 0) {
+            mWindowYMax[mViewMode] = maxY;
+            mWindowYMin[mViewMode] = minY;
+        }
         return false;
     }
 
@@ -452,7 +588,8 @@ public class GraphView extends SurfaceView implements SurfaceHolder.Callback,
     @Override
     public boolean onDoubleTapEvent(MotionEvent e) {
         Log.d(TAG, "in onDoubleTapEvent");
-        return false;
+        mIsZoomExtent = true;
+        return true;
     }
 
 /***************************************************************************************************
@@ -464,13 +601,29 @@ public class GraphView extends SurfaceView implements SurfaceHolder.Callback,
     @Override
     public boolean onScale(ScaleGestureDetector detector) {
         Log.d(TAG, "in onScale");
-        return false;
+        // TODO: Limit scaling so that you can't zoom out if already zoom extent.
+        // TODO: Scale and shift based on where you are pinching/zooming
+        // TODO: Implement X scaling;
+        double scaleFactor = detector.getScaleFactor();
+        Log.d(TAG, "scaleFactor = " + scaleFactor);
+        double range = mWindowYMax[mViewMode] - mWindowYMin[mViewMode];
+        double scaledRange = range * scaleFactor;
+        double axisChange = scaledRange - range;
+        double scaledMax = mWindowYMax[mViewMode] - axisChange;
+        double scaledMin = mWindowYMin[mViewMode] + axisChange;
+        if (scaledMin < scaledMax && scaledMin >= 0) {
+            mWindowYMax[mViewMode] = scaledMax;
+            mWindowYMin[mViewMode] = scaledMin;
+        }
+        return scaleFactor != 0;
     }
 
     @Override
     public boolean onScaleBegin(ScaleGestureDetector detector) {
         Log.d(TAG, "in onScaleBegin");
-        return detector.getCurrentSpan() > 0;
+        mIsZoomExtent = false;
+
+        return true;
     }
 
     @Override

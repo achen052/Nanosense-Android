@@ -97,6 +97,10 @@ public class GraphViewFragment extends Fragment implements ViewTreeObserver.OnGl
         }
     }
 
+    public void setVisiblePins(boolean[] isPinVisible) {
+        mGraphView.setVisiblePins(isPinVisible);
+    }
+
 /***************************************************************************************************
  *
  * GlobalLayoutListener Callbacks

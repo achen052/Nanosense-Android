@@ -13,8 +13,8 @@
         android:orderInCategory="101"
         app:showAsAction="never"/>
 
-    <item android:id="@+id/action_select_pins"
-        android:title="@string/action_hide_show_pins"
+    <item android:id="@+id/action_set_visible"
+        android:title="@string/action_set_visible_pins"
         android:orderInCategory="102"
         app:showAsAction="never"/>
 

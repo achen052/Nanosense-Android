@@ -21,7 +21,7 @@
     <!-- SettingsActivity end -->
 
     <!-- Begin GraphFragment -->
-    <dimen name="graph_view_title_font">24sp</dimen>
+    <dimen name="graph_view_title_font">18sp</dimen>
     <dimen name="graph_view_label_font">14sp</dimen>
     <!-- Using item since the compiler is stupid and dimen won't allow a float needs some sort unit -->
     <item name="graph_view_y_label_rotation" format="float" type="dimen">270.0</item>

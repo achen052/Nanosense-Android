@@ -1,16 +1,23 @@
 package edu.ucr.nanosense;
 
+import android.app.AlertDialog;
 import android.app.Fragment;
 import android.app.ProgressDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.Toast;
+import android.view.View;
+import android.widget.CheckBox;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -46,6 +53,9 @@ public class NanoSenseActivity extends IOIOActivity {
 
     private static final int REQUEST_OPTIONS = 1;
 
+    private static final String STATE_STARTED = "started";
+    private static final String STATE_INITIALIZED = "initialized";
+
     public static ArrayList<ArrayList<Data>> mData = new ArrayList<ArrayList<Data>>();
     /**
      * Min and max values seen so far. Used by {@link edu.ucr.nanosense.GraphView} for setting
@@ -58,7 +68,7 @@ public class NanoSenseActivity extends IOIOActivity {
     private int mServerPort;
     private String mServerIp;
 
-    private byte[] mInitialResistances = new byte[Constants.Device.NUM_PINS_NANOSENSOR];
+    private static byte[] mInitialResistances = new byte[Constants.Device.NUM_PINS_NANOSENSOR];
 
     /** The System time that the last sensor reading was taken */
     private long mPolledTime;
@@ -74,8 +84,8 @@ public class NanoSenseActivity extends IOIOActivity {
     private ProgressDialog mDeviceProgressDialog;
 
     // TODO: These need to be saved in on instance state
-    private boolean mStarted = false;
-    private boolean mInitialized = false;
+    private static boolean mStarted = false;
+    private static boolean mInitialized = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -112,6 +122,24 @@ public class NanoSenseActivity extends IOIOActivity {
                     FRAGMENT_TAG_GRAPH_VIEW).commit();
         }
 
+        if (savedInstanceState != null) {
+            mStarted = savedInstanceState.getBoolean(STATE_STARTED, false);
+            mInitialized = savedInstanceState.getBoolean(STATE_INITIALIZED, false);
+        }
+    }
+
+    @Override
+    public void onRestoreInstanceState(Bundle savedInstanceState) {
+        if (savedInstanceState != null) {
+            mStarted = savedInstanceState.getBoolean(STATE_STARTED, false);
+            mInitialized = savedInstanceState.getBoolean(STATE_INITIALIZED, false);
+        }
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        outState.putBoolean(STATE_INITIALIZED, mInitialized);
+        outState.putBoolean(STATE_STARTED, mStarted);
     }
 
     public void setDeviceDialogProgress(int progress) {
@@ -221,7 +249,44 @@ public class NanoSenseActivity extends IOIOActivity {
             mStarted = !mStarted;
             if (mStarted) {
                 mPolledTime = 0;
+            } else {
+                mInitialized = false;
             }
+        } else if (id == R.id.action_set_visible) {
+            AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
+            alertDialogBuilder.setTitle(R.string.show_pins_dialog_title);
+            LayoutInflater layoutInflater = LayoutInflater.from(this);
+            ScrollView scrollView = new ScrollView(this);
+            LinearLayout linearLayout = new LinearLayout(this);
+            linearLayout.setOrientation(LinearLayout.VERTICAL);
+            scrollView.addView(linearLayout);
+            final ArrayList<CheckBox> checkBoxes = new ArrayList<CheckBox>();
+            for (int i = 0; i < Constants.Device.NUM_PINS_NANOSENSOR; ++i) {
+                CheckBox checkBox = new CheckBox(this);
+                checkBox.setText("Sensor " + i);
+                checkBox.setGravity(Gravity.CENTER);
+                checkBox.setPadding(12, 12, 12, 12);
+                checkBox.setChecked(true);
+                checkBoxes.add(checkBox);
+                linearLayout.addView(checkBox);
+            }
+            alertDialogBuilder.setView(scrollView);
+            alertDialogBuilder.setPositiveButton(R.string.button_label_show,
+                    new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        boolean[] visiblePins = new boolean[checkBoxes.size()];
+                        for (int i = 0; i < checkBoxes.size(); ++i) {
+                            visiblePins[i] = checkBoxes.get(i).isChecked();
+                        }
+                        GraphViewFragment graphViewFragment = (GraphViewFragment)
+                                getFragmentManager().findFragmentByTag(FRAGMENT_TAG_GRAPH_VIEW);
+                        if (graphViewFragment != null) {
+                            graphViewFragment.setVisiblePins(visiblePins);
+                        }
+                    }
+                });
+            alertDialogBuilder.show();
         }
         return super.onOptionsItemSelected(item);
     }
@@ -758,6 +823,13 @@ public class NanoSenseActivity extends IOIOActivity {
                 if (!mInitialized) {
                     matchResistances();
                     mInitialized = true;
+                    for (int i = 0; i < mData.size(); ++i) {
+                        mData.get(i).clear();
+                    }
+                    for (int i = 0; i < Constants.Device.NUM_SENSORS; ++i) {
+                        mMaxValues.add(Double.NEGATIVE_INFINITY);
+                        mMinValues.add(Double.POSITIVE_INFINITY);
+                    }
                 } else {
                     // TODO: Use try catch, and if disconnected, stop polling.
                     long elapsedTime = System.currentTimeMillis() - mPolledTime;
@@ -818,14 +890,9 @@ public class NanoSenseActivity extends IOIOActivity {
                         sb.append(df.format(thermistorCelcius));
                         sb.append("\n\nRH:");
                         sb.append(df.format(relativeHumidity));
-                        final String dataString = sb.toString();
-                        final long finalElapsedTime = elapsedTime;
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                Toast.makeText(getApplicationContext(), String.valueOf(finalElapsedTime), Toast.LENGTH_LONG).show();
-                            }
-                        });
+                        String dataString = sb.toString();
+                        Log.d(TAG, "Latency: " + elapsedTime + "ms");
+
                     }
                 }
             }

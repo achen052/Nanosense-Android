@@ -62,7 +62,7 @@
     <string name="error_server_port">Error - Invalid server port\nDefaulting to\u0020</string>
     <!-- String for toast messaged shown when back pressed in options activity -->
     <string name="options_cancelled">Cancelled - Options not set</string>
-    <string name="action_hide_show_pins">Hide/Show Pins</string>
+    <string name="action_set_visible_pins">Set Visible Pins</string>
     <string name="confirm_calibrate_accel">Accelerometer Calibrated</string>
     <string name="error_baseline_duration">Error - Invalid baseline duration\nDefaulting to\u0020</string>
     <string name="toggle_button_accelerometer_on">Accelerometer On</string>
@@ -86,5 +86,7 @@
     <string name="graph_view_title_humidity">Relative Humidity</string>
     <string name="graph_view_x_label_humidity">Time (min)</string>
     <string name="graph_view_y_label_humidity">Relative Humidity (%)</string>
+    <string name="show_pins_dialog_title">Visible Channels</string>
+    <string name="button_label_show">Show</string>
     <!-- End GraphFragment -->
 </resources>
